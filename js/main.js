@@ -875,26 +875,548 @@ function performSearch() {
   window.renderCart = renderCart;
 });
 
+/*===============================Đăng ký / Đăng nhập / Profile (toàn bộ)===============================*/
+
+/* ----------------- Helpers ----------------- */
+function isValidEmail(email) {
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim());
+}
+
+function isValidPhone(raw) {
+  if (!raw) return false;
+  const digits = String(raw).replace(/\D/g, "");
+  // Hỗ trợ 0xxxxxxxxx (10 số) hoặc 0xxxxxxxxxx (11 số) / +84xxxxxxxxx
+  if (/^0\d{9,10}$/.test(digits)) return true;
+  if (/^84\d{9,10}$/.test(digits)) return true;
+  return false;
+}
+
+function normalizePhone(raw) {
+  if (!raw) return "";
+  let digits = String(raw).replace(/\D/g, "");
+  // chuyển 84... -> 0...
+  if (/^84\d{9,10}$/.test(digits)) {
+    return "0" + digits.slice(2);
+  }
+  if (/^0\d{9,10}$/.test(digits)) {
+    return digits;
+  }
+  return "";
+}
+
+function escapeHtml(str) {
+  if (str === undefined || str === null) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function safeQuery(root, selector) {
+  if (!root) return null;
+  return root.querySelector(selector);
+}
+
+/* ----------------- Storage helpers ----------------- */
+const USERS_KEY = "registeredUsers";
+const LOGGED_KEY = "loggedInUser";
+
+function getUsersArray() {
+  try {
+    return JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+  } catch (e) {
+    console.error("Parse registeredUsers failed", e);
+    return [];
+  }
+}
+function setUsersArray(arr) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(arr));
+}
+function getLoggedRaw() {
+  try {
+    return JSON.parse(localStorage.getItem(LOGGED_KEY) || "null");
+  } catch (e) {
+    return null;
+  }
+}
+function setLogged(obj) {
+  localStorage.setItem(LOGGED_KEY, JSON.stringify(obj));
+}
+function clearLogged() {
+  localStorage.removeItem(LOGGED_KEY);
+}
+
+/* ----------------- Auth handlers ----------------- */
+
+function handleRegister(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const form = document.querySelector(".register-form");
+  if (!form) return false;
+
+  const fullname = (safeQuery(form, ".register-fullname") || {}).value?.trim() || "";
+  const birthdate = (safeQuery(form, ".register-birthdate") || {}).value || "";
+  const rawPhone = (safeQuery(form, ".register-phone") || {}).value || "";
+  const email = (safeQuery(form, ".register-email") || {}).value?.trim() || "";
+  const password = (safeQuery(form, ".register-password") || {}).value || "";
+  const confirm = (safeQuery(form, ".register-confirm") || {}).value || "";
+
+  // Validate required fields
+  if (!fullname || !birthdate || !rawPhone || !password) {
+    alert("Vui lòng nhập đầy đủ thông tin đăng ký.");
+    return false;
+  }
+  if (password !== confirm) {
+    alert("Mật khẩu không khớp.");
+    return false;
+  }
+
+  // Phone validation & normalize
+  if (!isValidPhone(rawPhone)) {
+    alert("Số điện thoại không hợp lệ! Vui lòng nhập dạng 0xxxxxxxxx hoặc +84xxxxxxxxx.");
+    return false;
+  }
+  const phone = normalizePhone(rawPhone);
+  if (!phone) {
+    alert("Không thể chuẩn hóa số điện thoại. Vui lòng kiểm tra lại.");
+    return false;
+  }
+
+  // Email validation (nếu nhập)
+  if (email && !isValidEmail(email)) {
+    alert("Địa chỉ email không hợp lệ.");
+    return false;
+  }
+
+  // Check duplicate phone
+  const users = getUsersArray();
+  if (users.some(u => normalizePhone(u.phone) === phone)) {
+    alert("Số điện thoại đã được đăng ký. Vui lòng đăng nhập hoặc dùng số khác.");
+    return false;
+  }
+
+  const newUser = {
+    id: 'u' + Date.now() + Math.floor(Math.random()*1000),
+    fullname,
+    birthdate,
+    phone,
+    email,
+    password, // LƯU Ý: plain-text chỉ demo. Không dùng trong production.
+    avatar: "", // lưu dataURL nếu có
+    savedAt: new Date().toISOString()
+  };
+  users.push(newUser);
+  setUsersArray(users);
+
+  // Close overlay if exists
+  if (typeof hideRegisterOverlay === "function") hideRegisterOverlay();
+  const overlay = document.getElementById("overlay");
+  if (overlay) overlay.style.display = "none";
+
+  alert("Đăng ký thành công! Hãy đăng nhập.");
+  form.reset();
+  return true;
+}
+
+function handleLogin(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const form = document.querySelector(".login-form") || document.querySelector(".user-login-form");
+  if (!form) return false;
+
+  const rawPhone = (safeQuery(form, ".login-phone") || {}).value || "";
+  const password = (safeQuery(form, ".login-password") || {}).value || "";
+
+  if (!rawPhone || !password) {
+    alert("Nhập số điện thoại và mật khẩu.");
+    return false;
+  }
+  if (!isValidPhone(rawPhone)) {
+    alert("Số điện thoại không hợp lệ!");
+    return false;
+  }
+
+  const phone = normalizePhone(rawPhone);
+  const users = getUsersArray();
+  const found = users.find(u => normalizePhone(u.phone) === phone && u.password === password);
+  if (!found) {
+    alert("Sai số điện thoại hoặc mật khẩu.");
+    const p = safeQuery(form, ".login-password");
+    if (p) p.value = "";
+    return false;
+  }
+
+  // Lưu phiên
+  setLogged({
+    phone: found.phone,
+    fullname: found.fullname,
+    loggedAt: new Date().toISOString()
+  });
+
+  /* === CHỈ HIỆN PROFILE === */
+  // Ẩn tất cả các nội dung trang trừ #account-area
+  document.querySelectorAll("body > *").forEach(el => {
+    if (el.id !== "account-area") el.style.display = "none";
+  });
+
+  // Hiện #account-area
+  const area = document.getElementById("account-area");
+  if (area) {
+    area.style.display = "block";
+    area.classList.remove("hidden");
+    showAccountAreaFromLogged();
+  }
+
+  // Dọn mật khẩu
+  const pw = safeQuery(form, ".login-password");
+  if (pw) pw.value = "";
+  return true;
+}
+
+
+if (document.getElementById("account-area")) {
+  const logged = getLoggedRaw();
+  if (logged) {
+    // Ẩn toàn bộ nội dung khác
+    document.querySelectorAll("body > *").forEach(el => {
+      if (el.id !== "account-area") el.style.display = "none";
+    });
+    // Hiện profile
+    showAccountAreaFromLogged();
+  }
+}
+
+
+/* ----------------- PROFILE DISPLAY & EDIT IN #account-area ----------------- */
+
+function getCurrentUserRecord() {
+  const logged = getLoggedRaw();
+  if (!logged) return null;
+  const users = getUsersArray();
+  return users.find(u => normalizePhone(u.phone) === normalizePhone(logged.phone)) || null;
+}
+
+function hideAccountAreaUI() {
+  const area = document.getElementById("account-area");
+  if (!area) return;
+  // restore page in case hideAccountAreaUI called directly
+  document.querySelectorAll("body > *").forEach(el => {
+    if (el.id !== "account-area") el.style.display = "";
+  });
+  area.style.display = "none";
+  area.innerHTML = "";
+  document.body.style.overflow = "";
+  // remove possible resize listener
+  window.removeEventListener("resize", showAccountAreaFromLogged.__applyResponsive);
+}
+
+function showAccountAreaFromLogged() {
+  const logged = getLoggedRaw();
+  if (!logged) return hideAccountAreaUI();
+
+  const rec = getCurrentUserRecord();
+  const user = rec || { phone: logged.phone, fullname: logged.fullname || "", email: "", birthdate: "", avatar: "" };
+
+  const area = document.getElementById("account-area");
+  if (!area) return;
+
+  // 1) Ẩn tất cả nội dung trang (trừ account-area)
+  document.querySelectorAll("body > *").forEach(el => {
+    if (el.id !== "account-area") el.style.display = "none";
+  });
+
+  // 2) Ép account-area full màn hình (backdrop)
+  Object.assign(area.style, {
+    display: "block",
+    position: "fixed",
+    top: "0",
+    left: "0",
+    width: "100vw",
+    height: "100vh",
+    overflowY: "auto",
+    zIndex: "2147483646",
+    padding: "20px",
+    boxSizing: "border-box",
+    background: "rgba(0,0,0,0.35)" // backdrop mờ
+  });
+
+  // khóa scroll body
+  document.body.style.overflow = "hidden";
+
+  // 3) Chèn nội dung profile (card giữa màn hình)
+  area.innerHTML = `
+    <div class="account-card">
+      <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;align-items:center;">
+          <div style="font-size:30px;font-weight:700;margin-bottom:6px;" id="profileNameUI">${escapeHtml(user.fullname || user.phone)}</div>
+          <div style="color:#444;font-size:24px;">Số điện thoại: <strong id="profilePhoneUI">${escapeHtml(user.phone)}</strong></div>
+          <div style="color:#444;font-size:24px;">Email: <span id="profileEmailUI">${escapeHtml(user.email || '—')}</span></div>
+          <div style="color:#444;font-size:24px;">Ngày sinh: <span id="profileBirthUI">${escapeHtml(user.birthdate || '—')}</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;font-size:24px;">
+        <button id="accountEditBtn" type="button">Chỉnh sửa hồ sơ</button>
+        <button id="accountHomeBtn" type="button">Trang chủ</button>
+        <button id="accountLogoutBtn" type="button" style="margin-left:auto;background:#dc3545;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;">Đăng xuất</button>
+      </div>
+
+      <div id="accountEditAreaUI" style="margin-top:16px;">
+        <form id="accountEditFormUI">
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+            <label>Họ và tên<br><input type="text" id="accountEditFullname" value="${escapeHtml(user.fullname || '')}" /></label>
+            <label>Email<br><input type="email" id="accountEditEmail" value="${escapeHtml(user.email || '')}" /></label>
+            <label>Ngày sinh<br><input type="date" id="accountEditBirth" value="${escapeHtml(user.birthdate || '')}" max="${(new Date()).toISOString().slice(0,10)}"/></label>
+            <div style="display:flex;gap:8px;">
+              <button type="submit">Lưu</button>
+              <button type="button" id="accountEditCancelBtn">Hủy</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  // 4) restore helper (khôi phục trang khi đóng)
+  function restorePage() {
+    document.querySelectorAll("body > *").forEach(el => {
+      if (el.id !== "account-area") el.style.display = "";
+    });
+    // hide area and cleanup
+    area.style.display = "none";
+    area.innerHTML = "";
+    document.body.style.overflow = "";
+    // remove resize listener
+    window.removeEventListener("resize", showAccountAreaFromLogged.__applyResponsive);
+  }
+
+  // 5) Gắn sự kiện các nút
+  const closeBtn = document.getElementById("accountPanelClose");
+  if (closeBtn) closeBtn.addEventListener("click", restorePage);
+
+  const btnLogout = document.getElementById("accountLogoutBtn");
+  if (btnLogout) btnLogout.addEventListener("click", () => {
+    clearLogged();
+    restorePage();
+    window.location.reload();
+  });
+
+  const btnHome = document.getElementById("accountHomeBtn");
+  if (btnHome) btnHome.addEventListener("click", () => {
+    // chỉnh đường dẫn nếu cần
+    window.location.href = "../index.html";
+  });
+
+  // 6) Edit profile wiring
+  const btnEdit = document.getElementById("accountEditBtn");
+  const editArea = document.getElementById("accountEditAreaUI");
+  if (btnEdit && editArea) {
+    btnEdit.addEventListener("click", () => {
+      editArea.style.display = editArea.style.display === 'none' ? 'block' : 'none';
+    });
+
+    const form = document.getElementById("accountEditFormUI");
+    if (form) {
+      form.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const fullname = document.getElementById("accountEditFullname")?.value?.trim() || "";
+        const email = document.getElementById("accountEditEmail")?.value?.trim() || "";
+        const birth = document.getElementById("accountEditBirth")?.value || "";
+
+        if (!fullname) { alert("Vui lòng nhập họ và tên."); return; }
+        if (email && !isValidEmail(email)) { alert("Email không hợp lệ."); return; }
+        if (birth && birth > (new Date()).toISOString().slice(0,10)) { alert("Ngày sinh không hợp lệ."); return; }
+
+        let users = getUsersArray();
+        const idx = users.findIndex(u => normalizePhone(u.phone) === normalizePhone(user.phone));
+        if (idx === -1) { alert("Không tìm thấy người dùng."); return; }
+
+        users[idx].fullname = fullname;
+        users[idx].email = email;
+        users[idx].birthdate = birth;
+        users[idx].updatedAt = new Date().toISOString();
+        setUsersArray(users);
+
+        const loggedNow = getLoggedRaw();
+        if (loggedNow && normalizePhone(loggedNow.phone) === normalizePhone(user.phone)) {
+          setLogged({ phone: users[idx].phone, fullname: users[idx].fullname, loggedAt: new Date().toISOString() });
+        }
+
+        // cập nhật UI
+        document.getElementById("profileNameUI").textContent = fullname;
+        document.getElementById("profileEmailUI").textContent = email || '—';
+        document.getElementById("profileBirthUI").textContent = birth || '—';
+        editArea.style.display = 'none';
+        alert("Cập nhật hồ sơ thành công.");
+      });
+
+      const cancelBtn = document.getElementById("accountEditCancelBtn");
+      if (cancelBtn) cancelBtn.addEventListener("click", () => { editArea.style.display = 'none'; });
+    }
+  }
+
+  // 7) Responsive: nếu màn hình nhỏ thì bottom-sheet (gần full)
+  function applyResponsive() {
+    if (window.innerWidth <= 640) {
+      // bottom sheet look
+      Object.assign(area.style, {
+        top: "",
+        bottom: "0",
+        left: "0",
+        width: "100vw",
+        height: "auto",
+        maxHeight: "85vh",
+        padding: "12px",
+      });
+      const card = area.querySelector(".account-card");
+      if (card) {
+        card.style.margin = "12px auto";
+        card.style.width = "calc(100% - 24px)";
+      }
+    } else {
+      // full centered modal card on desktop
+      Object.assign(area.style, {
+        top: "0",
+        bottom: "",
+        left: "0",
+        width: "100vw",
+        height: "100vh",
+        padding: "20px",
+      });
+      const card = area.querySelector(".account-card");
+      if (card) {
+        card.style.margin = "48px auto";
+        card.style.width = "calc(100% - 48px)";
+        card.style.maxWidth = "900px";
+      }
+    }
+  }
+
+  // expose applyResponsive so we can remove listener later
+  showAccountAreaFromLogged.__applyResponsive = applyResponsive;
+  window.addEventListener("resize", applyResponsive);
+  applyResponsive();
+}
+
+function ensureProfileContainer() {
+  let container = document.getElementById("headerProfileContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "headerProfileContainer";
+    container.style.cssText = "float:right;align-items:center;gap:8px;";
+    document.body.prepend(container);
+  }
+  return container;
+}
+
+
+function renderProfileBox() {
+  const container = ensureProfileContainer();
+  if (!container) return;
+
+  const logged = getLoggedRaw();
+  if (!logged) {
+    container.innerHTML = `
+      <span class="profile-text">Chưa đăng nhập.</span>
+      <a class="profile-login" href="page/user.html">Đăng nhập</a>
+    `;
+    return;
+  }
+
+  const displayName = escapeHtml(logged.fullname || logged.phone || "Tài khoản");
+  container.innerHTML = `
+    <span class="profile-text">Xin chào, <strong>${displayName}</strong></span>
+    <br>
+    <button class="profile-edit" id="btnOpenEditProfile" type="button">Profile</button>
+    <button class="profile-logout" id="btnLogout" type="button">Đăng xuất</button>
+  `;
+
+  const btnLogout = container.querySelector("#btnLogout");
+  if (btnLogout) btnLogout.addEventListener("click", () => {
+    clearLogged();
+    renderProfileBox();
+    window.location.reload();
+  });
+
+  const btnEdit = container.querySelector("#btnOpenEditProfile");
+  if (btnEdit) btnEdit.addEventListener("click", () => {
+    // nếu có account-area, mở nó, còn không điều hướng tới trang user
+    if (document.getElementById("account-area")) {
+      showAccountAreaFromLogged();
+    } else {
+      window.location.href = "page/user.html";
+    }
+  });
+  
+}
+
+/* ----------------- Overlay helpers (exposed) ----------------- */
+window.showRegisterOverlay = function() {
+  const overlay = document.getElementById("overlay");
+  if (overlay) overlay.style.display = "flex";
+};
+window.hideRegisterOverlay = function() {
+  const overlay = document.getElementById("overlay");
+  if (overlay) overlay.style.display = "none";
+};
+
+/* ----------------- Init & Event wiring ----------------- */
+function initAuthModule() {
+  // attach forms
+  const regForm = document.querySelector(".register-form");
+  if (regForm) regForm.addEventListener("submit", handleRegister);
+
+  const loginForm = document.querySelector(".login-form") || document.querySelector(".user-login-form");
+  if (loginForm) loginForm.addEventListener("submit", handleLogin);
+
+  // Render header small box
+  renderProfileBox();
+
+  // If page contains #account-area and user already logged -> show profile
+  if (document.getElementById("account-area")) {
+    const logged = getLoggedRaw();
+    if (logged) showAccountAreaFromLogged();
+  }
+
+  // Close register overlay on Esc
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      const overlay = document.getElementById("overlay");
+      if (overlay) overlay.style.display = "none";
+    }
+  });
+}
+
+// Expose some handlers so HTML onclick attributes can call them
+window.handleRegister = handleRegister;
+window.handleLogin = handleLogin;
+window.renderProfileBox = renderProfileBox;
+window.showAccountAreaFromLogged = showAccountAreaFromLogged;
+window.hideAccountAreaUI = hideAccountAreaUI;
+
+// Autostart
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initAuthModule);
+} else {
+  initAuthModule();
+}
+
+
+
+
+
+
 // so sánh ===========================================================================================
 (function () {
   const TAG = "[COMPARE]";
-  function log(...args) {
-    console.log(TAG, ...args);
+  function log(...args){ console.log(TAG, ...args); }
+  function formatVND(n){
+    if (n==null||n==="") return "";
+    const num = typeof n==="number"? n : Number(String(n).replace(/[^\d.-]/g,""));
+    return isNaN(num)? String(n) : num.toLocaleString('vi-VN') + ' ₫';
   }
-  function formatVND(n) {
-    if (n == null || n === "") return "";
-    const num =
-      typeof n === "number" ? n : Number(String(n).replace(/[^\d.-]/g, ""));
-    return isNaN(num) ? String(n) : num.toLocaleString("vi-VN") + " ₫";
-  }
-  function escapeHtml(s) {
-    if (s == null) return "";
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
+  function escapeHtml(s){ if (s==null) return ""; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   function initCompareModule() {
     const compareBar = document.getElementById("compareBar");
@@ -903,9 +1425,7 @@ function performSearch() {
     const clearAllBtn = document.getElementById("clearAllBtn");
 
     if (!compareBar || !compareItems || !compareNowBtn || !clearAllBtn) {
-      log(
-        "Missing required elements: #compareBar, #compareItems, #compareNowBtn, #clearAllBtn"
-      );
+      log("Missing required elements: #compareBar, #compareItems, #compareNowBtn, #clearAllBtn");
       return;
     }
 
@@ -917,16 +1437,14 @@ function performSearch() {
       const id = idAttr ? Number(idAttr) : Date.now();
       const img = card.querySelector("img")?.src || "";
       const name = card.querySelector(".product-name")?.innerText?.trim() || "";
-      const priceText =
-        card.querySelector(".product-price")?.innerText?.trim() || "";
-      const oldPriceText =
-        card.querySelector(".product-oldprice")?.innerText?.trim() || "";
+      const priceText = card.querySelector(".product-price")?.innerText?.trim() || "";
+      const oldPriceText = card.querySelector(".product-oldprice")?.innerText?.trim() || "";
       return { id, name, price: priceText, oldPrice: oldPriceText, image: img };
     }
 
     function updateCompareBar() {
       compareItems.innerHTML = "";
-      selected.forEach((item) => {
+      selected.forEach(item => {
         const div = document.createElement("div");
         div.className = "compare-item";
         if (item.id) div.dataset.id = item.id;
@@ -935,36 +1453,23 @@ function performSearch() {
         div.style.gap = "8px";
         div.style.padding = "6px";
         div.innerHTML = `
-          <img src="${escapeHtml(
-            item.image || "images/no-image.png"
-          )}" width="56" height="56" style="object-fit:cover;border-radius:6px;">
+          <img src="${escapeHtml(item.image || 'images/no-image.png')}" width="56" height="56" style="object-fit:cover;border-radius:6px;">
           <div style="min-width:140px;max-width:220px;overflow:hidden;">
-            <div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(
-              item.name || "Sản phẩm"
-            )}</div>
-            <div style="font-size:11px;color:#666">${formatVND(
-              item.price
-            )}</div>
-            <div style="font-size:11px;color:#999;text-decoration:line-through;">${escapeHtml(
-              item.oldPrice || ""
-            )}</div>
+            <div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(item.name || 'Sản phẩm')}</div>
+            <div style="font-size:11px;color:#666">${formatVND(item.price)}</div>
+            <div style="font-size:11px;color:#999;text-decoration:line-through;">${escapeHtml(item.oldPrice || '')}</div>
           </div>
           <button class="remove-compare-item" title="Xóa" style="margin-left:auto;border:none;background:transparent;cursor:pointer;font-size:14px;">✕</button>
         `;
-        div
-          .querySelector(".remove-compare-item")
-          .addEventListener("click", () => {
-            selected = selected.filter((s) => s.id !== item.id);
-            updateCompareBar();
-          });
+        div.querySelector(".remove-compare-item").addEventListener("click", () => {
+          selected = selected.filter(s => s.id !== item.id);
+          updateCompareBar();
+        });
         compareItems.appendChild(div);
       });
       if (selected.length > 0) compareBar.classList.remove("hidden");
       else compareBar.classList.add("hidden");
-      log(
-        "updateCompareBar -> selected:",
-        selected.map((s) => ({ id: s.id, name: s.name }))
-      );
+      log("updateCompareBar -> selected:", selected.map(s => ({id: s.id, name: s.name})));
     }
 
     document.addEventListener("click", function (e) {
@@ -972,27 +1477,18 @@ function performSearch() {
       if (!btn) return;
       e.preventDefault();
       const card = btn.closest(".product-card");
-      if (!card) {
-        alert("Không tìm thấy .product-card");
-        return;
-      }
+      if (!card) { alert("Không tìm thấy .product-card"); return; }
 
       const cardInfo = readCardInfo(card);
-      if (selected.some((s) => s.id === cardInfo.id)) {
-        alert("Sản phẩm đã được chọn");
-        return;
-      }
-      if (selected.length >= 3) {
-        alert("Chỉ chọn tối đa 3 sản phẩm");
-        return;
-      }
+      if (selected.some(s => s.id === cardInfo.id)) { alert("Sản phẩm đã được chọn"); return; }
+      if (selected.length >= 3) { alert("Chỉ chọn tối đa 3 sản phẩm"); return; }
 
       selected.push({
         id: cardInfo.id,
         name: cardInfo.name,
         price: cardInfo.price,
         oldPrice: cardInfo.oldPrice,
-        image: cardInfo.image,
+        image: cardInfo.image
       });
 
       updateCompareBar();
@@ -1000,10 +1496,7 @@ function performSearch() {
 
     compareNowBtn.addEventListener("click", function (e) {
       e.preventDefault();
-      if (!selected || selected.length === 0) {
-        alert("Hãy chọn sản phẩm trước khi bấm 'So sánh'.");
-        return;
-      }
+      if (!selected || selected.length === 0) { alert("Hãy chọn sản phẩm trước khi bấm 'So sánh'."); return; }
       buildComparePopup(selected);
     });
 
@@ -1017,30 +1510,16 @@ function performSearch() {
 
     function buildComparePopup(selProducts) {
       const fields = [
-        ["Tên sản phẩm", (p) => escapeHtml(p.name || "")],
-        [
-          "Hình ảnh",
-          (p) =>
-            `<img src="${escapeHtml(
-              p.image || ""
-            )}" width="100" style="object-fit:cover;border-radius:6px;">`,
-        ],
-        ["Giá", (p) => formatVND(p.price)],
-        ["Giá gốc", (p) => escapeHtml(p.oldPrice || "")],
+        ["Tên sản phẩm", p => escapeHtml(p.name || "")],
+        ["Hình ảnh", p => `<img src="${escapeHtml(p.image || '')}" width="100" style="object-fit:cover;border-radius:6px;">`],
+        ["Giá", p => formatVND(p.price)],
+        ["Giá gốc", p => escapeHtml(p.oldPrice || "")]
       ];
 
-      const rowsHtml = fields
-        .map(([label, fn]) => {
-          const cells = selProducts
-            .map(
-              (p) => `<td style="vertical-align:top;padding:8px;">${fn(p)}</td>`
-            )
-            .join("");
-          return `<tr><th style="text-align:left;padding:10px;background:#fafafa">${escapeHtml(
-            label
-          )}</th>${cells}</tr>`;
-        })
-        .join("");
+      const rowsHtml = fields.map(([label, fn]) => {
+        const cells = selProducts.map(p => `<td style="vertical-align:top;padding:8px;">${fn(p)}</td>`).join("");
+        return `<tr><th style="text-align:left;padding:10px;background:#fafafa">${escapeHtml(label)}</th>${cells}</tr>`;
+      }).join("");
 
       const old = document.getElementById("comparePopup");
       if (old) old.remove();
@@ -1063,7 +1542,7 @@ function performSearch() {
               ${rowsHtml}
             </table>
           </div>
-          <div style="display:flex;justifyContent:flex-end;margin-top:12px;">
+          <div style="display:flex;justify-content:flex-end;margin-top:12px;">
             <button id="compareCloseBtn" class="btn-secondary" style="padding:8px 12px;border-radius:6px;border:none;cursor:pointer;">Đóng</button>
           </div>
         </div>
@@ -1071,28 +1550,172 @@ function performSearch() {
       document.body.appendChild(popup);
 
       const popupEl = document.getElementById("comparePopup");
-      document
-        .getElementById("compareCloseBtn")
-        .addEventListener("click", () => popupEl.remove());
-      popupEl.addEventListener("click", (e) => {
-        if (e.target === popupEl) popupEl.remove();
-      });
+      document.getElementById("compareCloseBtn").addEventListener("click", () => popupEl.remove());
+      popupEl.addEventListener("click", (e) => { if (e.target === popupEl) popupEl.remove(); });
 
-      log(
-        "Popup shown with products:",
-        selProducts.map((p) => ({ id: p.id, name: p.name }))
-      );
+      log("Popup shown with products:", selProducts.map(p => ({id:p.id, name:p.name})));
     }
 
     log("Compare module initialized");
   }
 
-  if (document.readyState === "loading")
-    document.addEventListener("DOMContentLoaded", initCompareModule);
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initCompareModule);
   else initCompareModule();
 })();
 
+//=================================Quản lý tài khoản (admin)==================================
+
+// --------------- CẤU TRÚC DỮ LIỆU MẪU ---------------
+// Mẫu user object: { id: "u1", name: "Nguyen A", email: "a@x.com", phone: "0123...", role: "admin" }
+// Có 2 kiểu lưu: (A) localStorage.accounts = JSON.stringify([user,...])
+//                  (B) localStorage keys like "user_<id>" = JSON.stringify(user)
+
+// --------------- LẤY DỮ LIỆU TỪ LOCAL ---------------
+function getAccountsFromLocal() {
+  // Thử đọc key "accounts" trước
+  try {
+    const raw = localStorage.getItem('accounts');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr;
+    }
+  } catch(e) { console.warn('parse accounts failed', e); }
+
+  // Nếu không có key "accounts", dò các key có prefix "user_"
+  const users = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k) continue;
+    if (k.startsWith('user_')) {
+      try {
+        const u = JSON.parse(localStorage.getItem(k));
+        if (u && typeof u === 'object') users.push(u);
+      } catch(e) { /* ignore parse error */ }
+    }
+  }
+  return users;
+}
+
+// --------------- LƯU DỮ LIỆU VỀ LOCAL ---------------
+function saveAccountsToLocal(arr) {
+  // Mình lưu gọn vào "accounts" (thay thế toàn bộ)
+  localStorage.setItem('accounts', JSON.stringify(arr));
+}
+
+// --------------- RENDER DANH SÁCH ---------------
+function renderAccounts(filterText = '') {
+  const accounts = getAccountsFromLocal();
+  const tbody = document.getElementById('accountList');
+  const noData = document.getElementById('noData');
+  tbody.innerHTML = '';
+
+  const filtered = accounts.filter(acc => {
+    if (!filterText) return true;
+    const s = filterText.toLowerCase();
+    return (acc.name||'').toLowerCase().includes(s)
+        || (acc.email||'').toLowerCase().includes(s)
+        || (acc.phone||'').toLowerCase().includes(s);
+  });
+
+  if (filtered.length === 0) {
+    noData.style.display = '';
+    return;
+  } else {
+    noData.style.display = 'none';
+  }
+
+  filtered.forEach((acc, idx) => {
+    const tr = document.createElement('tr');
+
+    const idCell = `<td>${idx + 1}</td>`;
+    const nameCell = `<td>${escapeHtml(acc.name || '-')}</td>`;
+    const contact = `${escapeHtml(acc.email || '')}${acc.email && acc.phone ? ' / ' : ''}${escapeHtml(acc.phone || '')}`;
+    const contactCell = `<td>${contact || '-'}</td>`;
+    const roleCell = `<td>${escapeHtml(acc.role || 'user')}</td>`;
+    const actions = `
+      <td>
+        <button class="action-btn action-edit" data-id="${acc.id}">Sửa</button>
+        <button class="action-btn action-del" data-id="${acc.id}">Xóa</button>
+      </td>
+    `;
+
+    tr.innerHTML = idCell + nameCell + contactCell + roleCell + actions;
+    tbody.appendChild(tr);
+  });
+
+  // gắn event cho nút sửa/xóa
+  tbody.querySelectorAll('.action-del').forEach(b => {
+    b.onclick = () => deleteAccount(b.dataset.id);
+  });
+  tbody.querySelectorAll('.action-edit').forEach(b => {
+    b.onclick = () => editAccount(b.dataset.id);
+  });
+}
+
+// --------------- HÀM SỬA / XÓA ---------------
+function deleteAccount(id) {
+  if (!confirm('Bạn có chắc muốn xóa tài khoản này?')) return;
+  let arr = getAccountsFromLocal();
+  arr = arr.filter(u => String(u.id) !== String(id));
+  saveAccountsToLocal(arr);
+
+  // nếu bạn cũng lưu từng key user_<id> riêng lẻ, xóa luôn
+  try { localStorage.removeItem('user_' + id); } catch(e) {}
+  renderAccounts(document.getElementById('searchAccounts').value);
+}
+
+function editAccount(id) {
+  // Quick demo: prompt sửa tên (bạn có thể mở modal form đẹp hơn)
+  const arr = getAccountsFromLocal();
+  const idx = arr.findIndex(u => String(u.id) === String(id));
+  if (idx === -1) return alert('Không tìm thấy tài khoản');
+  const newName = prompt('Sửa tên:', arr[idx].name || '');
+  if (newName === null) return; // hủy
+  arr[idx].name = newName.trim();
+  saveAccountsToLocal(arr);
+  renderAccounts(document.getElementById('searchAccounts').value);
+}
+
+// --------------- HỖ TRỢ: escapeHtml ---------------
+function escapeHtml(str) {
+  if (str === undefined || str === null) return '';
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// --------------- Demo helper: thêm 1 số data mẫu ---------------
+function addDemoAccounts() {
+  const base = [
+    { id: 'u1', name: 'Nguyễn Văn A', email: 'a@example.com', phone:'0912345678', role:'admin' },
+    { id: 'u2', name: 'Trần Thị B', email: 'b@x.com', phone:'0987654321', role:'user' },
+    { id: 'u3', name: 'Khách Hàng', email: '', phone:'0123456789', role:'customer' },
+  ];
+  saveAccountsToLocal(base);
+  // lưu key user_... (tùy bạn có cần)
+  base.forEach(u => localStorage.setItem('user_' + u.id, JSON.stringify(u)));
+  renderAccounts();
+}
+
+// --------------- Khởi tạo event listeners ---------------
+document.getElementById('btnReload').addEventListener('click', () => renderAccounts());
+document.getElementById('btnAddDemo').addEventListener('click', addDemoAccounts);
+document.getElementById('searchAccounts').addEventListener('input', (e) => renderAccounts(e.target.value));
+
+// Load lần đầu
+renderAccounts();
+//=================================END Quản lý tài khoản (admin)==================================
+
 //============= END SO SÁNH ========================================================
+
+
+
+
+
+
 
 // ================== PRODUCT DETAIL MODAL ==================
 function attachProductDetailEvents() {

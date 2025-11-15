@@ -1,389 +1,147 @@
-DÁN LẠI NGUYÊN PHẦN VÀO USER
 <!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Đăng nhập Watchsmember</title>
-    <link rel="stylesheet" href="../css/style.css" />
-  </head>
-  <body>
-    <div id="account-area" style="display: none"></div>
-    <div class="login-page-wrapper">
-      <div class="login-container">
-        <div class="login-form-area">
-          <h1 class="title-main">Đăng nhập Watchsmember</h1>
-          <form class="login-form">
-            <div class="form-group">
-              <label for="login-phone">Số điện thoại</label>
-              <input
-                type="tel"
-                id="login-phone"
-                class="login-phone"
-                placeholder="Nhập số điện thoại của bạn"
-              />
-            </div>
-            <div class="form-group">
-              <label for="login-password">Mật khẩu</label>
-              <!-- thêm class login-password -->
-              <input
-                type="password"
-                id="login-password"
-                class="login-password"
-                placeholder="Nhập mật khẩu của bạn"
-              />
-            </div>
-            <button type="submit" class="btn-login">Đăng nhập</button>
-          </form>
-
-          <div class="social-login-section">
-            <p>Hoặc đăng nhập bằng</p>
-
-            <div class="google-login-button-mock">
-              <img
-                src="https://www.gstatic.com/marketing-cms/assets/images/d5/dc/cfe9ce8b4425b410b49b7f2dd3f3/g.webp=s96-fcrop64=1,00000000ffffffff-rw"
-                alt="Google icon"
-                class="google-icon"
-              />
-              Google
-            </div>
-
-            <div class="register">
-              <span>Bạn chưa có tài khoản?</span>
-              <!-- gọi showRegisterOverlay() từ auth.js -->
-              <button type="button" onclick="showRegisterOverlay()">
-                Đăng ký ngay
-              </button>
-            </div>
+<head>
+  <meta charset="UTF-8" />
+  <title>Đăng nhập Watchsmember</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <Div id="account-area" style="display:none;"></div>
+  <div class="login-page-wrapper">
+    <div class="login-container">
+      <div class="login-form-area">
+        <h1 class="title-main">Đăng nhập Watchsmember</h1>
+        <form class="login-form">
+          <div class="form-group">
+            <label for="login-phone">Số điện thoại</label>
+            <input type="tel" id="login-phone" class="login-phone" placeholder="Nhập số điện thoại của bạn" />
           </div>
-        </div>
-
-        <!-- overlay: mặc định ẩn (auth.js cũng thao tác style display) -->
-        <div>
-          <div id="overlay" style="display: none">
-            <div class="register-container">
-              <div class="register-header">
-                <h1>
-                  Đăng ký trở thành smember
-                  <span style="color: #f39c12">WSMEMBER</span>
-                </h1>
-                <div class="header-logo">
-                  <img
-                    src="../image/logo.jpg"
-                    width="200"
-                    height="100"
-                    alt="logo"
-                  />
-                </div>
-                <div class="register-note">Có thể đăng ký bằng tài khoản</div>
-              </div>
-
-              <div class="register-card">
-                <div class="register-social">
-                  <div class="register-btn-google" id="btnGoogle">
-                    <img
-                      src="https://www.gstatic.com/marketing-cms/assets/images/d5/dc/cfe9ce8b4425b410b49b7f2dd3f3/g.webp=s96-fcrop64=1,00000000ffffffff-rw"
-                      alt="G"
-                      width="18"
-                    />
-                    <span>Đăng ký bằng Google</span>
-                  </div>
-                </div>
-
-                <div class="register-divider">Hoặc điền thông tin sau</div>
-
-                <!-- đổi thành class="register-form" (auth.js gắn sự kiện submit cho .register-form) -->
-                <form class="register-form" novalidate>
-                  <div class="register-grid">
-                    <div class="register-form-group">
-                      <label for="reg-fullname">Họ và tên</label>
-                      <!-- thêm class register-fullname -->
-                      <input
-                        type="text"
-                        id="reg-fullname"
-                        class="register-fullname"
-                        placeholder="Nhập họ và tên"
-                      />
-                      <div class="register-error" id="errFullname">
-                        Vui lòng nhập họ và tên.
-                      </div>
-                    </div>
-
-                    <div class="register-form-group">
-                      <label for="reg-birthdate">Ngày sinh</label>
-                      <!-- class register-birthdate -->
-                      <input
-                        type="date"
-                        id="reg-birthdate"
-                        class="register-birthdate"
-                        max=""
-                      />
-                      <div class="register-error" id="errBirth">
-                        Vui lòng chọn ngày hợp lệ.
-                      </div>
-                    </div>
-
-                    <div class="register-form-group">
-                      <label for="reg-phone">Số điện thoại</label>
-                      <!-- class register-phone -->
-                      <input
-                        type="tel"
-                        id="reg-phone"
-                        class="register-phone"
-                        placeholder="Nhập số điện thoại"
-                      />
-                      <div class="register-error" id="errPhone">
-                        Số điện thoại không hợp lệ.
-                      </div>
-                    </div>
-
-                    <div class="register-form-group">
-                      <label for="reg-email">Email (không bắt buộc)</label>
-                      <!-- class register-email -->
-                      <input
-                        type="email"
-                        id="reg-email"
-                        class="register-email"
-                        placeholder="Nhập email"
-                      />
-                      <div class="register-error" id="errEmail">
-                        Email không hợp lệ.
-                      </div>
-                    </div>
-
-                    <div class="register-form-group">
-                      <label for="reg-password">Mật khẩu</label>
-                      <!-- class register-password -->
-                      <input
-                        type="password"
-                        id="reg-password"
-                        class="register-password"
-                        placeholder="Nhập mật khẩu của bạn"
-                      />
-                      <div class="register-note">
-                        Mật khẩu tối thiểu 6 ký tự, có ít nhất 1 chữ số.
-                      </div>
-                      <div class="register-error" id="errPass">
-                        Mật khẩu phải ít nhất 6 ký tự, có ít nhất 1 chữ số.
-                      </div>
-                    </div>
-
-                    <div class="register-form-group">
-                      <label for="reg-pconfirm">Nhập lại mật khẩu</label>
-                      <!-- class register-confirm -->
-                      <input
-                        type="password"
-                        id="reg-pconfirm"
-                        class="register-confirm"
-                        placeholder="Nhập lại mật khẩu của bạn"
-                      />
-                      <div class="register-error" id="errConfirm">
-                        Mật khẩu không khớp.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    style="
-                      font-size: 12px;
-                      color: #666;
-                      margin-top: 12px;
-                      text-align: center;
-                    "
-                  >
-                    Bằng việc đăng ký, bạn đã đồng ý với
-                    <a href="#">Điều khoản sử dụng</a> và
-                    <a href="#">Chính sách</a> của Watchstore.
-                  </div>
-
-                  <div class="register-actions">
-                    <!-- nút quay lại là type=button để không submit -->
-                    <button
-                      type="button"
-                      class="register-btn-back"
-                      onclick="hideRegisterOverlay()"
-                    >
-                      &#x2039; Quay lại đăng nhập
-                    </button>
-                    <!-- nút submit để auth.js bắt sự kiện và gọi handleRegister -->
-                    <button
-                      type="submit"
-                      id="btnSubmit"
-                      class="register-btn-submit"
-                    >
-                      Hoàn tất đăng ký
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="benefits-area">
-          <div class="header-logo">
-            <img src="../image/logo.jpg" alt="logo" />
+          <div class="form-group">
+            <label for="login-password">Mật khẩu</label>
+            <input type="password" id="login-password" class="login-password" placeholder="Nhập mật khẩu của bạn" />
           </div>
 
-          <h2 class="benefits-title">
-            Gia nhập thành viên của <span class="highlight">watchstore</span>
-            <br />
-            Để không bỏ lỡ các ưu đãi hấp dẫn
-          </h2>
+          <button type="submit" class="btn-login">Đăng nhập</button>
+        </form>
 
-          <div class="benefits-box">
-            <ul>
-              <li>
-                <i class="icon-gift">🎁</i> Chiết khấu đến
-                <strong>5%</strong> khi mua các sản phẩm tại Watchstore
-              </li>
-              <li>
-                <i class="icon-delivery">🚚</i>
-                <strong>Miễn phí giao hàng</strong> cho thành viên WSMEMBER và
-                cho đơn hàng từ <strong>300.000đ</strong>
-              </li>
-              <li>
-                <i class="icon-birthday">🎂</i>
-                <strong>Tặng voucher sinh nhật đến 500.000đ</strong> cho khách
-                hàng thành viên
-              </li>
-              <li>
-                <i class="icon-exchange">🔄</i>
-                <strong>Trợ giá thu cũ đổi mới tối đa 1 triệu</strong>
-              </li>
-              <li>
-                <i class="icon-coupon">🎟️</i>
-                <strong>Thăng hạng nhận voucher đến 300.000đ</strong>
-              </li>
-            </ul>
+        <div class="social-login-section">
+          <p>Hoặc đăng nhập bằng</p>
+
+          <div class="google-login-button-mock">
+            <img src="https://www.gstatic.com/marketing-cms/assets/images/d5/dc/cfe9ce8b4425b410b49b7f2dd3f3/g.webp=s96-fcrop64=1,00000000ffffffff-rw" alt="Google icon" class="google-icon" />
+            Google
+          </div>
+
+          <div class="register">
+            <span>Bạn chưa có tài khoản?</span>
+            <button type="button" onclick="showRegisterOverlay()">Đăng ký ngay</button>
           </div>
         </div>
       </div>
+      <div>
+        <div id="overlay" style="display:none;">
+          <div class="register-container">
+            <div class="register-header">
+              <h1>Đăng ký trở thành smember <span style="color:#f39c12;">WSMEMBER</span></h1>
+              <div class="header-logo">
+                <img src="../image/logo.jpg" width="200" height="100" alt="logo" />
+              </div>
+              <div class="register-note">Có thể đăng ký bằng tài khoản</div>
+            </div>
+
+            <div class="register-card">
+              <div class="register-social">
+                <div class="register-btn-google" id="btnGoogle">
+                  <img src="https://www.gstatic.com/marketing-cms/assets/images/d5/dc/cfe9ce8b4425b410b49b7f2dd3f3/g.webp=s96-fcrop64=1,00000000ffffffff-rw" alt="G" width="18" />
+                  <span>Đăng ký bằng Google</span>
+                </div>
+              </div>
+
+              <div class="register-divider">Hoặc điền thông tin sau</div>
+              <form class="register-form" novalidate>
+                <div class="register-grid">
+                  <div class="register-form-group">
+                    <label for="reg-fullname">Họ và tên</label>
+                    <input type="text" id="reg-fullname" class="register-fullname" placeholder="Nhập họ và tên" />
+                    <div class="register-error" id="errFullname">Vui lòng nhập họ và tên.</div>
+                  </div>
+
+                  <div class="register-form-group">
+                    <label for="reg-birthdate">Ngày sinh</label>
+                    <!-- class register-birthdate -->
+                    <input type="date" id="reg-birthdate" class="register-birthdate" max="" />
+                    <div class="register-error" id="errBirth">Vui lòng chọn ngày hợp lệ.</div>
+                  </div>
+
+                  <div class="register-form-group">
+                    <label for="reg-phone">Số điện thoại</label>
+                    <!-- class register-phone -->
+                    <input type="tel" id="reg-phone" class="register-phone" placeholder="Nhập số điện thoại" />
+                    <div class="register-error" id="errPhone">Số điện thoại không hợp lệ.</div>
+                  </div>
+
+                  <div class="register-form-group">
+                    <label for="reg-email">Email (không bắt buộc)</label>
+                    <!-- class register-email -->
+                    <input type="email" id="reg-email" class="register-email" placeholder="Nhập email" />
+                    <div class="register-error" id="errEmail">Email không hợp lệ.</div>
+                  </div>
+
+                  <div class="register-form-group">
+                    <label for="reg-password">Mật khẩu</label>
+                    <!-- class register-password -->
+                    <input type="password" id="reg-password" class="register-password" placeholder="Nhập mật khẩu của bạn" />
+                    <div class="register-note">Mật khẩu tối thiểu 6 ký tự, có ít nhất 1 chữ số.</div>
+                    <div class="register-error" id="errPass">Mật khẩu phải ít nhất 6 ký tự, có ít nhất 1 chữ số.</div>
+                  </div>
+
+                  <div class="register-form-group">
+                    <label for="reg-pconfirm">Nhập lại mật khẩu</label>
+                    <!-- class register-confirm -->
+                    <input type="password" id="reg-pconfirm" class="register-confirm" placeholder="Nhập lại mật khẩu của bạn" />
+                    <div class="register-error" id="errConfirm">Mật khẩu không khớp.</div>
+                  </div>
+                </div>
+
+                <div style="font-size:12px; color:#666; margin-top:12px;text-align: center;">
+                  Bằng việc đăng ký, bạn đã đồng ý với <a href="#">Điều khoản sử dụng</a> và <a href="#">Chính sách</a> của Watchstore.
+                </div>
+
+                <div class="register-actions">
+                  <!-- nút quay lại là type=button để không submit -->
+                  <button type="button" class="register-btn-back" onclick="hideRegisterOverlay()">&#x2039; Quay lại đăng nhập</button>
+                  <!-- nút submit để auth.js bắt sự kiện và gọi handleRegister -->
+                  <button type="submit" id="btnSubmit" class="register-btn-submit">Hoàn tất đăng ký</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="benefits-area">
+        <div class="header-logo">
+          <img src="../image/logo.jpg" alt="logo" />
+        </div>
+
+        <h2 class="benefits-title">
+          Gia nhập thành viên của <span class="highlight">watchstore</span>
+          <br />
+          Để không bỏ lỡ các ưu đãi hấp dẫn
+        </h2>
+
+        <div class="benefits-box">
+          <ul>
+            <li><i class="icon-gift">🎁</i> Chiết khấu đến <strong>5%</strong> khi mua các sản phẩm tại Watchstore</li>
+            <li><i class="icon-delivery">🚚</i> <strong>Miễn phí giao hàng</strong> cho thành viên WSMEMBER và cho đơn hàng từ <strong>300.000đ</strong></li>
+            <li><i class="icon-birthday">🎂</i> <strong>Tặng voucher sinh nhật đến 500.000đ</strong> cho khách hàng thành viên</li>
+            <li><i class="icon-exchange">🔄</i> <strong>Trợ giá thu cũ đổi mới tối đa 1 triệu</strong></li>
+            <li><i class="icon-coupon">🎟️</i> <strong>Thăng hạng nhận voucher đến 300.000đ</strong></li>
+          </ul>
+        </div>
+      </div>
     </div>
-    <script src="../js/main.js"></script>
-    <script>
-      // Xử lý đăng nhập thành công
-      document
-        .querySelector(".login-form")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
-
-          const phone = document.getElementById("login-phone").value;
-          const password = document.getElementById("login-password").value;
-
-          // Kiểm tra đăng nhập (đơn giản)
-          if (phone && password) {
-            // Lưu thông tin user vào localStorage
-            const userData = {
-              isLoggedIn: true,
-              phone: phone,
-              fullname: "Phạm Văn Nhật", // Có thể lấy từ database
-              loginTime: new Date().toISOString(),
-            };
-
-            localStorage.setItem("currentUser", JSON.stringify(userData));
-
-            // Hiển thị thông báo thành công
-            showLoginSuccess();
-
-            // Chuyển hướng về trang chủ sau 2 giây
-            setTimeout(() => {
-              window.location.href = "../index.html";
-            }, 2000);
-          } else {
-            alert("Vui lòng nhập đầy đủ thông tin đăng nhập!");
-          }
-        });
-
-      // Xử lý đăng ký thành công
-      document
-        .querySelector(".register-form")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
-
-          const fullname = document.getElementById("reg-fullname").value;
-          const phone = document.getElementById("reg-phone").value;
-          const password = document.getElementById("reg-password").value;
-
-          if (fullname && phone && password) {
-            // Lưu thông tin user vào localStorage
-            const userData = {
-              isLoggedIn: true,
-              phone: phone,
-              fullname: fullname,
-              loginTime: new Date().toISOString(),
-            };
-
-            localStorage.setItem("currentUser", JSON.stringify(userData));
-
-            // Hiển thị thông báo thành công
-            showRegisterSuccess();
-
-            // Chuyển hướng về trang chủ sau 2 giây
-            setTimeout(() => {
-              window.location.href = "../index.html";
-            }, 2000);
-          }
-        });
-
-      function showLoginSuccess() {
-        const notification = document.createElement("div");
-        notification.style.cssText = `
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: linear-gradient(135deg, #28a745, #20c997);
-          color: white;
-          padding: 30px 40px;
-          border-radius: 15px;
-          z-index: 10000;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-          text-align: center;
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        `;
-        notification.innerHTML = `
-          <div style="font-size: 48px; margin-bottom: 15px;">🎉</div>
-          <div style="font-size: 20px; font-weight: bold; margin-bottom: 10px;">Đăng nhập thành công!</div>
-          <div>Chào mừng bạn quay trở lại</div>
-          <div style="margin-top: 15px; font-size: 14px; opacity: 0.9;">Đang chuyển hướng về trang chủ...</div>
-        `;
-        document.body.appendChild(notification);
-      }
-
-      function showRegisterSuccess() {
-        const notification = document.createElement("div");
-        notification.style.cssText = `
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: linear-gradient(135deg, #007bff, #0056b3);
-          color: white;
-          padding: 30px 40px;
-          border-radius: 15px;
-          z-index: 10000;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-          text-align: center;
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        `;
-        notification.innerHTML = `
-          <div style="font-size: 48px; margin-bottom: 15px;">✨</div>
-          <div style="font-size: 20px; font-weight: bold; margin-bottom: 10px;">Đăng ký thành công!</div>
-          <div>Chào mừng thành viên mới</div>
-          <div style="margin-top: 15px; font-size: 14px; opacity: 0.9;">Đang chuyển hướng về trang chủ...</div>
-        `;
-        document.body.appendChild(notification);
-      }
-
-      // Hàm hiển thị overlay đăng ký
-      function showRegisterOverlay() {
-        document.getElementById("overlay").style.display = "block";
-      }
-
-      // Hàm ẩn overlay đăng ký
-      function hideRegisterOverlay() {
-        document.getElementById("overlay").style.display = "none";
-      }
-    </script>
-  </body>
+  </div>
+  <script src="../js/main.js"></script>
+</body>
 </html>

@@ -207,13 +207,29 @@
                 <div class="data-table">
                     <h2>Quản lý Người dùng</h2>
                     <p>Quản lý tài khoản Admin và Khách hàng...</p>
+                    <div class="user-controls">
+                        <input id="searchAccounts" placeholder="Tìm theo tên / email / phone..." />
+                        </div>
+
+                        <table class="account-table" id="accountTable">
+                        <thead>
+                            <tr>
+                            <th>#</th>
+                            <th>Tên</th>
+                            <th>Email / SĐT</th>
+                            <th>Role</th>
+                            <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accountList"></tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
             <section id="posts" class="data-section" style="display: none;">
                 <div class="data-table">
                     <h2>Quản lý Tin tức</h2>
                     <p>Chức năng thêm/sửa/xóa bài viết...</p>
-                </div>
             </section>
             <section id="settings" class="data-section" style="display: none;">
                 <div class="data-table">
