@@ -41,9 +41,36 @@ function renderProductCard(product) {
     imgSrc = imgSrc.replace(/^\.\.\//, '');
   }
 
-  // ✅ XỬ LÝ GIÁ AN TOÀN - TRÁNH MỌI LỖI
-  const productPrice = cleanPrice(product.price);
-  const productOriginalPrice = cleanPrice(product.oldPrice);
+  // ✅ XỬ LÝ GIÁ - TÍNH TOÁN TỪ COSTPRICE + DISCOUNT
+  let productPrice = 0;      // Giá bán chính thức (sau giảm giá)
+  let productOriginalPrice = 0; // Giá bán gốc (trước giảm giá)
+  let discountPercent = 0;
+  
+  // LOGIC TÍNH GIÁ MỚI (với discount system):
+  if (product.costPrice && product.profitMargin !== undefined) {
+    // Có dữ liệu từ hệ thống discount mới
+    const costPrice = cleanPrice(product.costPrice);
+    const profitMargin = Number(product.profitMargin) || 0;
+    const discount = Number(product.discount) || 0;
+    
+    // Tính giá bán gốc = costPrice × (1 + profitMargin%)
+    productOriginalPrice = Math.round(costPrice * (1 + profitMargin / 100));
+    
+    // Tính giá bán chính thức = giá gốc × (1 - discount%)
+    productPrice = Math.round(productOriginalPrice * (1 - discount / 100));
+    
+    // Discount percent là % giảm từ giá gốc so với giá chính thức
+    if (discount > 0) {
+      discountPercent = discount;
+    }
+  } else {
+    // BACKWARD COMPATIBILITY - sử dụng hệ thống giá cũ
+    productPrice = cleanPrice(product.price);
+    productOriginalPrice = cleanPrice(product.oldPrice);
+    if (productOriginalPrice > 0 && productOriginalPrice > productPrice) {
+      discountPercent = calculateDiscountPercentage(productOriginalPrice, productPrice);
+    }
+  }
   
   let priceHTML = '';
   let discountBadge = '';
@@ -59,8 +86,6 @@ function renderProductCard(product) {
   // Kiểm tra xem có giảm giá không
   else if (productOriginalPrice > 0 && productOriginalPrice > productPrice) {
     // CÓ GIẢM GIÁ - Hiển thị giá gốc + giá sale
-    const discountPercent = calculateDiscountPercentage(productOriginalPrice, productPrice);
-    
     priceHTML = `
       <div class="product-price">
         <div class="price-row">

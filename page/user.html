@@ -203,7 +203,6 @@
                     >
                       &#x2039; Quay lại đăng nhập
                     </button>
-                    <!-- nút submit để auth.js bắt sự kiện và gọi handleRegister -->
                     <button
                       type="submit"
                       id="btnSubmit"
@@ -243,7 +242,7 @@
               </div>
               <div class="form-group">
                 <label for="edit-phone">Số điện thoại</label>
-                <input type="tel" id="edit-phone" readonly />
+                <input type="tel" id="edit-phone" readonly/>
               </div>
               <div class="form-group">
                 <label for="edit-birthdate">Ngày sinh</label>
@@ -425,7 +424,18 @@
             return;
           }
 
+          // ✅ Generate user ID (U001, U002, etc.)
+          let maxNum = 0;
+          users.forEach(u => {
+            if (u.id && u.id.startsWith('U')) {
+              const num = parseInt(u.id.substring(1));
+              if (num > maxNum) maxNum = num;
+            }
+          });
+          const newId = "U" + (maxNum + 1).toString().padStart(3, "0");
+
           const newUser = {
+            id: newId,
             name: fullname,
             fullname: fullname,
             email: email || "N/A",
@@ -440,6 +450,7 @@
 
           // Auto-login sau đăng ký
           const userData = {
+            id: newId,
             isLoggedIn: true,
             fullname: newUser.fullname,
             name: newUser.name,
@@ -537,6 +548,53 @@
         } else {
           hideProfileArea();
         }
+
+        // ✅ THÊM: Hàm kiểm tra định kỳ xem tài khoản có bị xóa/khóa
+        function checkAccountStatus() {
+          const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+          if (!currentUser || !currentUser.isLoggedIn) return;
+
+          const allUsers = JSON.parse(localStorage.getItem("users")) || [];
+          const userExists = allUsers.some(u => u.phone === currentUser.phone && !u.locked);
+
+          if (!userExists) {
+            // Tài khoản bị xóa hoặc khóa
+            const isLocked = allUsers.some(u => u.phone === currentUser.phone && u.locked);
+            if (isLocked) {
+              alert("❌ Tài khoản của bạn đã bị khóa!");
+            } else {
+              alert("❌ Tài khoản của bạn không tồn tại!");
+            }
+            localStorage.removeItem("currentUser");
+            location.href = "../index.html";
+          }
+        }
+
+        // Kiểm tra mỗi 2 giây
+        setInterval(checkAccountStatus, 2000);
+
+        // ✅ THÊM: Listener cho sự kiện tài khoản bị khóa
+        window.addEventListener("userAccountLocked", function() {
+          const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+          if (currentUser && currentUser.isLoggedIn) {
+            alert("❌ Tài khoản của bạn đã bị khóa!");
+            // Giữ dữ liệu user nhưng logout
+            currentUser.isLoggedIn = false;
+            currentUser.locked = true;
+            localStorage.setItem("currentUser", JSON.stringify(currentUser));
+            location.href = "../index.html";
+          }
+        });
+
+        // ✅ THÊM: Listener cho sự kiện tài khoản bị xóa
+        window.addEventListener("userAccountDeleted", function() {
+          const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+          if (currentUser && currentUser.isLoggedIn) {
+            alert("❌ Tài khoản của bạn không tồn tại!");
+            localStorage.removeItem("currentUser");
+            location.href = "../index.html";
+          }
+        });
       });
       function showProfileArea() {
         document.querySelector(".login-form-area").style.display = "none";

@@ -106,12 +106,33 @@ document.addEventListener("DOMContentLoaded", function () {
   const noResultsMessage = document.getElementById("no-results");
 
   function renderProductCard(product) {
+    // Xử lý giá với hệ thống discount mới
+    let currentPrice = 0;
+    let oldPrice = 0;
+    
+    if (product.costPrice && product.profitMargin !== undefined) {
+      // Có dữ liệu từ hệ thống discount mới
+      const costPrice = Number(product.costPrice) || 0;
+      const profitMargin = Number(product.profitMargin) || 0;
+      const discount = Number(product.discount) || 0;
+      
+      // Tính giá bán gốc = costPrice × (1 + profitMargin%)
+      oldPrice = Math.round(costPrice * (1 + profitMargin / 100));
+      
+      // Tính giá bán chính thức = giá gốc × (1 - discount%)
+      currentPrice = Math.round(oldPrice * (1 - discount / 100));
+    } else {
+      // BACKWARD COMPATIBILITY - sử dụng hệ thống giá cũ
+      currentPrice = product.price || 0;
+      oldPrice = product.oldPrice || 0;
+    }
+    
     return `
       <div class="product-card" data-id="${product.id}">
         <img src="${product.image}" alt="${product.name}">
         <div class="product-name">${product.name}</div>
-        <div class="product-price">${formatPrice(product.price)}</div>
-        <div class="product-oldprice">${formatPrice(product.oldPrice)}</div>
+        <div class="product-price">${formatPrice(currentPrice)}</div>
+        <div class="product-oldprice">${formatPrice(oldPrice)}</div>
         <button class="compare-btn" type="button">So sánh</button>
       </div>
     `;
@@ -628,8 +649,9 @@ brandLinks.forEach((link) => {
       const specs = product.specs || {};
       const price = product.price || 0;
       const brand = product.brand || "";
-      const movement = (specs.movement || "").toLowerCase();
-      const waterResistance = (specs.waterResistance || "").toLowerCase();
+      // ✅ FIX: Lấy giá trị gốc (không chuyển thành lowercase ngay) để so sánh tốt hơn
+      const movement = specs.movement || "";
+      const waterResistance = specs.waterResistance || "";
 
       // 1. Lọc Giá
       if (filters.price) {
@@ -642,29 +664,32 @@ brandLinks.forEach((link) => {
       }
 
       // 2. Lọc Thương hiệu
-      if (filters.brand && brand.toLowerCase() !== filters.brand.toLowerCase()) {
-        return false;
+      if (filters.brand && filters.brand.trim() !== "") {
+        if (brand.toLowerCase() !== filters.brand.toLowerCase()) {
+          return false;
+        }
       }
 
-      // 3. Lọc Bộ máy (MỚI)
-      if (filters.movement && movement !== filters.movement.toLowerCase()) {
-        return false;
+      // 3. Lọc Bộ máy
+      // ✅ FIX: So sánh case-insensitive nhưng chính xác
+      if (filters.movement && filters.movement.trim() !== "") {
+        if (movement.toLowerCase() !== filters.movement.toLowerCase()) {
+          return false;
+        }
       }
 
-      // 4. Lọc Chống nước (MỚI)
-      if (filters.water) {
-        const filterWater = filters.water.toLowerCase(); // vd: "50m"
+      // 4. Lọc Chống nước
+      // ✅ FIX: So sánh trực tiếp, không cần lowercase vì dữ liệu đã chuẩn hóa (30m, 50m, 100m, 200m)
+      if (filters.water && filters.water.trim() !== "") {
+        // Trích xuất số từ filter (vd: "30m" → "30m")
+        const filterWaterValue = filters.water.trim();
         
-        if (filterWater === "30m") {
-          // Nếu lọc 30m, bao gồm "30m" và "water resistant" (thường là mức 30m)
-          if (waterResistance !== "30m" && waterResistance !== "water resistant") {
-            return false;
-          }
-        } else {
-          // Với các mức 50m, 100m, 200m, yêu cầu khớp chính xác
-          if (waterResistance !== filterWater) {
-            return false;
-          }
+        // So sánh trực tiếp hoặc phần lớn khớp
+        const isMatched = waterResistance === filterWaterValue ||
+                          waterResistance.toLowerCase() === filterWaterValue.toLowerCase();
+        
+        if (!isMatched) {
+          return false;
         }
       }
 
@@ -706,6 +731,17 @@ brandLinks.forEach((link) => {
 
   // Hàm thêm sản phẩm vào giỏ hàng
   function addToCart(product) {
+    // Kiểm tra tồn kho trước khi thêm sản phẩm
+    const inventory = JSON.parse(localStorage.getItem("inventory")) || [];
+    const productInventory = inventory.find(i => i.productId === product.id);
+    const stock = productInventory ? productInventory.stock : 20; // Mặc định 20 nếu không tìm thấy
+
+    // Nếu tồn kho = 0, hiển thị alert và không thêm vào giỏ
+    if (stock === 0) {
+      alert("❌ Sản phẩm không còn hàng!");
+      return;
+    }
+
     const cart = getCart();
 
     // Kiểm tra xem sản phẩm đã có trong giỏ hàng chưa
@@ -1027,136 +1063,78 @@ brandLinks.forEach((link) => {
 // so sánh ===========================================================================================
 (function () {
   const TAG = "[COMPARE]";
-  function log(...args) {
-    console.log(TAG, ...args);
-  }
+  function log(...args) { console.log(TAG, ...args); }
   function formatVND(n) {
     if (n == null || n === "") return "";
-    const num =
-      typeof n === "number" ? n : Number(String(n).replace(/[^\d.-]/g, ""));
+    const num = typeof n === "number" ? n : Number(String(n).replace(/[^\d.-]/g, ""));
     return isNaN(num) ? String(n) : num.toLocaleString("vi-VN") + " ₫";
   }
-  function escapeHtml(s) {
-    if (s == null) return "";
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
+  function escapeHtml(s) { return s == null ? "" : String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-  function initCompareModule() {
+  function initCompareModule(PRODUCTS) {
     const compareBar = document.getElementById("compareBar");
     const compareItems = document.getElementById("compareItems");
     const compareNowBtn = document.getElementById("compareNowBtn");
     const clearAllBtn = document.getElementById("clearAllBtn");
-
-    if (!compareBar || !compareItems || !compareNowBtn || !clearAllBtn) {
-      log(
-        "Missing required elements: #compareBar, #compareItems, #compareNowBtn, #clearAllBtn"
-      );
-      return;
-    }
+    if (!compareBar || !compareItems || !compareNowBtn || !clearAllBtn) return;
 
     let selected = [];
 
     function readCardInfo(card) {
-      if (!card) return null;
-      const idAttr = card.dataset?.id || card.getAttribute("data-id");
-      const id = idAttr ? Number(idAttr) : Date.now();
-      const img = card.querySelector("img")?.src || "";
-      const name = card.querySelector(".product-name")?.innerText?.trim() || "";
-      const priceText =
-        card.querySelector(".product-price")?.innerText?.trim() || "";
-      const oldPriceText =
-        card.querySelector(".product-oldprice")?.innerText?.trim() || "";
-      return { id, name, price: priceText, oldPrice: oldPriceText, image: img };
+      const id = card.dataset?.id;
+      const product = PRODUCTS.find(p => p.id === id);
+      return product || null;
     }
 
     function updateCompareBar() {
       compareItems.innerHTML = "";
-      selected.forEach((item) => {
+      selected.forEach(item => {
         const div = document.createElement("div");
         div.className = "compare-item";
-        if (item.id) div.dataset.id = item.id;
+        div.dataset.id = item.id;
         div.style.display = "flex";
         div.style.alignItems = "center";
         div.style.gap = "8px";
         div.style.padding = "6px";
         div.innerHTML = `
-          <img src="${escapeHtml(
-            item.image || "images/no-image.png"
-          )}" width="56" height="56" style="object-fit:cover;border-radius:6px;">
+          <img src="${escapeHtml(item.image)}" width="56" height="56" style="object-fit:cover;border-radius:6px;">
           <div style="min-width:140px;max-width:220px;overflow:hidden;">
-            <div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(
-              item.name || "Sản phẩm"
-            )}</div>
-            <div style="font-size:11px;color:#666">${formatVND(
-              item.price
-            )}</div>
-            <div style="font-size:11px;color:#999;text-decoration:line-through;">${escapeHtml(
-              item.oldPrice || ""
-            )}</div>
+            <div style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(item.name)}</div>
+            <div style="font-size:11px;color:#666">${formatVND(item.price)}</div>
+            <div style="font-size:11px;color:#999;text-decoration:line-through;">${formatVND(item.oldPrice)}</div>
           </div>
           <button class="remove-compare-item" title="Xóa" style="margin-left:auto;border:none;background:transparent;cursor:pointer;font-size:14px;">✕</button>
         `;
-        div
-          .querySelector(".remove-compare-item")
-          .addEventListener("click", () => {
-            selected = selected.filter((s) => s.id !== item.id);
-            updateCompareBar();
-          });
+        div.querySelector(".remove-compare-item").addEventListener("click", () => {
+          selected = selected.filter(s => s.id !== item.id);
+          updateCompareBar();
+        });
         compareItems.appendChild(div);
       });
-      if (selected.length > 0) compareBar.classList.remove("hidden");
-      else compareBar.classList.add("hidden");
-      log(
-        "updateCompareBar -> selected:",
-        selected.map((s) => ({ id: s.id, name: s.name }))
-      );
+      compareBar.classList.toggle("hidden", selected.length === 0);
     }
 
-    document.addEventListener("click", function (e) {
-      const btn = e.target.closest && e.target.closest(".compare-btn");
+    document.addEventListener("click", function(e) {
+      const btn = e.target.closest(".compare-btn");
       if (!btn) return;
       e.preventDefault();
       const card = btn.closest(".product-card");
-      if (!card) {
-        alert("Không tìm thấy .product-card");
-        return;
-      }
-
-      const cardInfo = readCardInfo(card);
-      if (selected.some((s) => s.id === cardInfo.id)) {
-        alert("Sản phẩm đã được chọn");
-        return;
-      }
-      if (selected.length >= 3) {
-        alert("Chỉ chọn tối đa 3 sản phẩm");
-        return;
-      }
-
-      selected.push({
-        id: cardInfo.id,
-        name: cardInfo.name,
-        price: cardInfo.price,
-        oldPrice: cardInfo.oldPrice,
-        image: cardInfo.image,
-      });
-
+      if (!card) return;
+      const info = readCardInfo(card);
+      if (!info) { alert("Sản phẩm không tồn tại"); return; }
+      if (selected.some(s => s.id === info.id)) { alert("Sản phẩm đã chọn"); return; }
+      if (selected.length >= 3) { alert("Chỉ chọn tối đa 3 sản phẩm"); return; }
+selected.push(info);
       updateCompareBar();
     });
 
-    compareNowBtn.addEventListener("click", function (e) {
+    compareNowBtn.addEventListener("click", function(e) {
       e.preventDefault();
-      if (!selected || selected.length === 0) {
-        alert("Hãy chọn sản phẩm trước khi bấm 'So sánh'.");
-        return;
-      }
+      if (!selected.length) { alert("Chọn sản phẩm trước khi so sánh"); return; }
       buildComparePopup(selected);
     });
 
-    clearAllBtn.addEventListener("click", function (e) {
+    clearAllBtn.addEventListener("click", function(e) {
       e.preventDefault();
       selected = [];
       updateCompareBar();
@@ -1166,30 +1144,22 @@ brandLinks.forEach((link) => {
 
     function buildComparePopup(selProducts) {
       const fields = [
-        ["Tên sản phẩm", (p) => escapeHtml(p.name || "")],
-        [
-          "Hình ảnh",
-          (p) =>
-            `<img src="${escapeHtml(
-              p.image || ""
-            )}" width="100" style="object-fit:cover;border-radius:6px;">`,
-        ],
-        ["Giá", (p) => formatVND(p.price)],
-        ["Giá gốc", (p) => escapeHtml(p.oldPrice || "")],
+        ["Tên sản phẩm", p => escapeHtml(p.name)],
+        ["Hình ảnh", p => `<img src="${escapeHtml(p.image)}" width="100" style="object-fit:cover;border-radius:6px;">`],
+        ["Giá", p => formatVND(p.price)],
+        ["Giá gốc", p => formatVND(p.oldPrice)],
+        ["Thương hiệu", p => escapeHtml(p.brand)],
+        ["Danh mục", p => escapeHtml(p.category)],
+        ["Kích thước", p => escapeHtml(p.specs.size)],
+        ["Bộ máy", p => escapeHtml(p.specs.movement)],
+        ["Chống nước", p => escapeHtml(p.specs.waterResistance)],
+        ["Mô tả", p => escapeHtml(p.description)],
       ];
 
-      const rowsHtml = fields
-        .map(([label, fn]) => {
-          const cells = selProducts
-            .map(
-              (p) => `<td style="vertical-align:top;padding:8px;">${fn(p)}</td>`
-            )
-            .join("");
-          return `<tr><th style="text-align:left;padding:10px;background:#fafafa">${escapeHtml(
-            label
-          )}</th>${cells}</tr>`;
-        })
-        .join("");
+      const rowsHtml = fields.map(([label, fn]) => {
+        const cells = selProducts.map(p => `<td style="vertical-align:top;padding:8px;">${fn(p)}</td>`).join("");
+        return `<tr><th style="text-align:left;padding:10px;background:#fafafa">${escapeHtml(label)}</th>${cells}</tr>`;
+      }).join("");
 
       const old = document.getElementById("comparePopup");
       if (old) old.remove();
@@ -1205,40 +1175,29 @@ brandLinks.forEach((link) => {
       popup.style.zIndex = "99999";
 
       popup.innerHTML = `
-        <div class="popup-content" style="width:min(1100px,96%);max-height:90vh;overflow:auto;background:#fff;border-radius:8px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,0.25);">
+        <div style="width:min(1100px,96%);max-height:90vh;overflow:auto;background:#fff;border-radius:8px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,0.25);">
           <h3 style="margin:0 0 12px;">So sánh sản phẩm (${selProducts.length})</h3>
           <div style="overflow:auto;">
-            <table class="compare-table" style="width:100%;border-collapse:collapse;border:1px solid #eee;">
+            <table style="width:100%;border-collapse:collapse;border:1px solid #eee;">
               ${rowsHtml}
             </table>
           </div>
-          <div style="display:flex;justifyContent:flex-end;margin-top:12px;">
-            <button id="compareCloseBtn" class="btn-secondary" style="padding:8px 12px;border-radius:6px;border:none;cursor:pointer;">Đóng</button>
+          <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+            <button id="compareCloseBtn" style="padding:8px 12px;border-radius:6px;border:none;cursor:pointer;">Đóng</button>
           </div>
         </div>
       `;
       document.body.appendChild(popup);
-
       const popupEl = document.getElementById("comparePopup");
-      document
-        .getElementById("compareCloseBtn")
-        .addEventListener("click", () => popupEl.remove());
-      popupEl.addEventListener("click", (e) => {
-        if (e.target === popupEl) popupEl.remove();
-      });
-
-      log(
-        "Popup shown with products:",
-        selProducts.map((p) => ({ id: p.id, name: p.name }))
-      );
+      document.getElementById("compareCloseBtn").addEventListener("click", () => popupEl.remove());
+      popupEl.addEventListener("click", e => { if (e.target === popupEl) popupEl.remove(); });
     }
-
-    log("Compare module initialized");
+log("Compare module initialized");
   }
 
   if (document.readyState === "loading")
-    document.addEventListener("DOMContentLoaded", initCompareModule);
-  else initCompareModule();
+    document.addEventListener("DOMContentLoaded", () => initCompareModule(PRODUCTS));
+  else initCompareModule(PRODUCTS);
 })();
 
 //============= END SO SÁNH ========================================================
@@ -1278,8 +1237,30 @@ window.attachProductDetailEvents=function() {
 
       // Tên & giá
       modal.querySelector("#modalProductName").textContent = product.name;
-      modal.querySelector("#modalCurrentPrice").textContent = window.formatPrice(product.price);
-      modal.querySelector("#modalOldPrice").textContent = window.formatPrice(product.oldPrice);
+      
+      // Xử lý giá với hệ thống discount mới
+      let currentPrice = 0;
+      let oldPrice = 0;
+      
+      if (product.costPrice && product.profitMargin !== undefined) {
+        // Có dữ liệu từ hệ thống discount mới
+        const costPrice = Number(product.costPrice) || 0;
+        const profitMargin = Number(product.profitMargin) || 0;
+        const discount = Number(product.discount) || 0;
+        
+        // Tính giá bán gốc = costPrice × (1 + profitMargin%)
+        oldPrice = Math.round(costPrice * (1 + profitMargin / 100));
+        
+        // Tính giá bán chính thức = giá gốc × (1 - discount%)
+        currentPrice = Math.round(oldPrice * (1 - discount / 100));
+      } else {
+        // BACKWARD COMPATIBILITY - sử dụng hệ thống giá cũ
+        currentPrice = product.price || 0;
+        oldPrice = product.oldPrice || 0;
+      }
+      
+      modal.querySelector("#modalCurrentPrice").textContent = window.formatPrice(currentPrice);
+      modal.querySelector("#modalOldPrice").textContent = window.formatPrice(oldPrice);
 
       // ⭐ Thêm mô tả
       modal.querySelector("#modalDescription").textContent =

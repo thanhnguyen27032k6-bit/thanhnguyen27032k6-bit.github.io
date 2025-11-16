@@ -380,6 +380,28 @@ class CartManager {
       document.getElementById("customer-note").style.display = "none";
     }
 
+    // Attach items and totals to orderData
+    const items = (this.cart || []).map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.price }));
+    const total = items.reduce((s, it) => s + (it.price * it.quantity), 0);
+    orderData.items = items;
+    orderData.total = total;
+    orderData.status = 'pending';
+
+    // Try to associate with logged-in user by id (fallback to phone)
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+      const idCustomer = (currentUser && currentUser.id) ? currentUser.id : null;
+      orderData.id_Customer = idCustomer;
+
+      // Save into centralized usersOrders store
+      const usersOrdersStr = localStorage.getItem('usersOrders');
+      const usersOrders = usersOrdersStr ? JSON.parse(usersOrdersStr) : [];
+      usersOrders.push(orderData);
+      localStorage.setItem('usersOrders', JSON.stringify(usersOrders));
+    } catch (e) {
+      console.error('Failed to save order to usersOrders', e);
+    }
+
     // Clear cart
     this.cart = [];
     this.saveCart();

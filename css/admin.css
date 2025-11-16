@@ -501,6 +501,32 @@
         letter-spacing: 0.5px;
         color: white;
     }
+
+    /* Sortable header styling */
+    .sortable-product-header,
+    .sortable-header {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+
+    .sortable-product-header:hover,
+    .sortable-header:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .sortable-product-header i,
+    .sortable-header i {
+        margin-left: 6px;
+        font-size: 0.75em;
+        transition: transform 0.2s ease;
+    }
+
+    .sortable-product-header:hover i,
+    .sortable-header:hover i {
+        transform: scale(1.2);
+    }
     
     tbody tr {
         transition: all 0.2s ease;
@@ -1151,3 +1177,233 @@
                 flex-direction: column;
             }
         }
+
+/* =======================================================
+    CSS CHO CẢNH BÁO KHO HẠN
+======================================================= */
+.low-stock-alert-btn {
+    position: relative;
+    padding: 8px 15px;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.low-stock-alert-btn:hover {
+    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+    transform: translateY(-2px);
+}
+
+.low-stock-alert-btn:active {
+    transform: translateY(0);
+}
+
+.low-stock-alert-btn i {
+    font-size: 16px;
+    animation: pulse-alert 2s infinite;
+}
+
+@keyframes pulse-alert {
+    0% {
+        color: white;
+    }
+    50% {
+        color: #fecaca;
+    }
+    100% {
+        color: white;
+    }
+}
+
+.alert-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    background-color: #fca5a5;
+    color: white;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 4px;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
+}
+
+/* Modal styles */
+#lowStockModal {
+    display: none !important;
+}
+
+#lowStockModal.active {
+    display: flex !important;
+}
+
+#lowStockTable tbody tr {
+    border-bottom: 1px solid #f3e8e8;
+    transition: background-color 0.2s ease;
+}
+
+#lowStockTable tbody tr:hover {
+    background-color: #fef2f2;
+}
+
+#lowStockTable td {
+    padding: 14px 12px;
+    color: #374151;
+}
+
+#lowStockTable td:nth-child(2),
+#lowStockTable td:nth-child(3) {
+    text-align: center;
+}
+
+.stock-status-critical {
+    display: inline-block;
+    padding: 4px 10px;
+    background-color: #fecaca;
+    color: #991b1b;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.stock-status-low {
+    display: inline-block;
+    padding: 4px 10px;
+    background-color: #fed7aa;
+    color: #b45309;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .low-stock-alert-btn {
+        flex-direction: column;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    
+    .alert-badge {
+        margin-left: 0;
+        margin-top: 2px;
+    }
+    
+    #lowStockTable {
+        font-size: 13px;
+    }
+    
+    #lowStockTable td {
+        padding: 10px 8px;
+    }
+}
+
+/* =======================================================
+    CSS CHO PHẦN TÌM KIẾM NGƯỜI DÙNG
+======================================================= */
+.user-search-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 8px;
+    border: 1px solid var(--admin-border-color);
+    align-items: flex-end;
+}
+
+.search-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.search-group label {
+    font-weight: 600;
+    color: var(--admin-text-color);
+    margin-bottom: 6px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.search-group label i {
+    color: var(--admin-primary-color);
+    font-size: 14px;
+}
+
+.search-input {
+    padding: 10px 12px;
+    border: 1px solid var(--admin-border-color);
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #ffffff;
+    color: var(--admin-text-color);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--admin-primary-color);
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+    background-color: #f8fafb;
+}
+
+.search-input::placeholder {
+    color: #9ca3af;
+}
+
+.btn-reset-filter {
+    padding: 10px 16px;
+    background-color: #f3f4f6;
+    color: var(--admin-text-color);
+    border: 1px solid var(--admin-border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.btn-reset-filter:hover {
+    background-color: #e5e7eb;
+    border-color: #d1d5db;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.btn-reset-filter:active {
+    transform: scale(0.98);
+}
+
+/* Responsive cho mobile */
+@media (max-width: 1024px) {
+    .user-search-section {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .btn-reset-filter {
+        width: 100%;
+        justify-content: center;
+    }
+}
+

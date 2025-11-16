@@ -245,7 +245,7 @@ const PRODUCTS   = [
       image: "image/DONGHONAM/CASIO/aq-230a-7dmq-1157113970-680936365-1712565956-400x400.jpg",
       sku: "CA-F-91W",
       description: "F-91W classic, nhẹ, giá rẻ, pin lâu.",
-      specs: { size: "38.2x35.2mm", movement: "Quartz", waterResistance: "Water resistant" }
+      specs: { size: "38.2x35.2mm", movement: "Quartz", waterResistance: "30m" }
     },
     {
       id: "P021",
@@ -353,7 +353,7 @@ const PRODUCTS   = [
       image: "image/DONGHONAM/G-SHOCK/ga-140ar-1adr-1-1639930127857-1712578565-400x400.jpg",
       sku: "CA-MTG-B2000",
       description: "MTG series cao cấp, vật liệu cao cấp, nhiều tính năng.",
-      specs: { size: "46mm", movement: "Hybrid (Quartz + Tough Solar)", waterResistance: "200m" }
+      specs: { size: "46mm", movement: "Hybrid", waterResistance: "200m" }
     },
     {
       id: "P030",

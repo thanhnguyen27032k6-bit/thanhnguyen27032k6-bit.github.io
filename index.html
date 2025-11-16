@@ -1723,8 +1723,61 @@
         // Kiểm tra quyền truy cập giỏ hàng nếu đang ở trang cart
         checkCartAccess();
 
+        // ✅ THÊM: Listener cho sự kiện tài khoản bị khóa
+        window.addEventListener("userAccountLocked", function() {
+          const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+          if (currentUser && currentUser.isLoggedIn) {
+            alert("❌ Tài khoản của bạn đã bị khóa!");
+            // Không xóa toàn bộ localStorage khi bị khoá — chỉ logout
+            currentUser.isLoggedIn = false;
+            currentUser.locked = true;
+            localStorage.setItem("currentUser", JSON.stringify(currentUser));
+            // Cập nhật giao diện / reload để reflect trạng thái
+            location.reload();
+          }
+        });
+
+        // ✅ THÊM: Listener cho sự kiện tài khoản bị xóa
+        window.addEventListener("userAccountDeleted", function() {
+          const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+          if (currentUser && currentUser.isLoggedIn) {
+            alert("❌ Tài khoản của bạn không tồn tại!");
+            // Xóa hoàn toàn khi tài khoản bị xóa
+            localStorage.removeItem("currentUser");
+            localStorage.removeItem("cartData");
+            location.reload();
+          }
+        });
+
+        // ✅ THÊM: Hàm kiểm tra định kỳ xem tài khoản có bị xóa/khóa
+        function checkAccountStatus() {
+          const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+          if (!currentUser || !currentUser.isLoggedIn) return;
+
+          const allUsers = JSON.parse(localStorage.getItem("users")) || [];
+          const exactUser = allUsers.find(u => u.phone === currentUser.phone);
+
+          if (!exactUser) {
+            // Tài khoản đã bị xóa
+            alert("❌ Tài khoản của bạn không tồn tại!");
+            localStorage.removeItem("currentUser");
+            localStorage.removeItem("cartData");
+            location.reload();
+          } else if (exactUser.locked) {
+            // Tài khoản bị khoá: logout nhưng giữ data
+            alert("❌ Tài khoản của bạn đã bị khóa!");
+            currentUser.isLoggedIn = false;
+            currentUser.locked = true;
+            localStorage.setItem("currentUser", JSON.stringify(currentUser));
+            location.reload();
+          }
+        }
+
         // Kiểm tra định kỳ trạng thái đăng nhập
-        setInterval(updateLoginUI, 2000);
+        setInterval(() => {
+          updateLoginUI();
+          checkAccountStatus();
+        }, 2000);
 
         const currentCart = JSON.parse(localStorage.getItem("cartData"));
         console.log("🛒 Giỏ hàng hiện tại:", currentCart);

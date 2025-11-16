@@ -14,8 +14,30 @@ document.addEventListener("DOMContentLoaded", () => {
   function openModal(product) {
     modal.querySelector("#modalProductImage").src = product.image;
     modal.querySelector("#modalProductName").textContent = product.name;
-    modal.querySelector("#modalCurrentPrice").textContent = product.price;
-    modal.querySelector("#modalOldPrice").textContent = product.oldPrice;
+    
+    // Xử lý giá với hệ thống discount mới
+    let currentPrice = 0;
+    let oldPrice = 0;
+    
+    if (product.costPrice && product.profitMargin !== undefined) {
+      // Có dữ liệu từ hệ thống discount mới
+      const costPrice = Number(product.costPrice) || 0;
+      const profitMargin = Number(product.profitMargin) || 0;
+      const discount = Number(product.discount) || 0;
+      
+      // Tính giá bán gốc = costPrice × (1 + profitMargin%)
+      oldPrice = Math.round(costPrice * (1 + profitMargin / 100));
+      
+      // Tính giá bán chính thức = giá gốc × (1 - discount%)
+      currentPrice = Math.round(oldPrice * (1 - discount / 100));
+    } else {
+      // BACKWARD COMPATIBILITY - sử dụng hệ thống giá cũ
+      currentPrice = product.price || 0;
+      oldPrice = product.oldPrice || 0;
+    }
+    
+    modal.querySelector("#modalCurrentPrice").textContent = currentPrice ? currentPrice.toLocaleString("vi-VN") + "₫" : "Liên hệ";
+    modal.querySelector("#modalOldPrice").textContent = oldPrice ? oldPrice.toLocaleString("vi-VN") + "₫" : "";
 
     // Tạo bảng thông số động
     specsTable.innerHTML = `
