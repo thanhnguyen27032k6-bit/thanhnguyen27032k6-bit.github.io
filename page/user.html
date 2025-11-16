@@ -633,7 +633,27 @@
             alert("✅ Thông tin cá nhân đã được cập nhật!");
           });
         }
+        function showRegisterOverlay() {
+        const overlay = document.getElementById("overlay");
+        if (overlay) overlay.style.display = "block";
 
+        // Ẩn login form và benefits-area khi hiển thị overlay
+        const loginFormArea = document.querySelector(".login-form-area");
+        const benefitsArea = document.querySelector(".benefits-area");
+        if (loginFormArea) loginFormArea.style.display = "none";
+        if (benefitsArea) benefitsArea.style.display = "none";
+      }
+
+      function hideRegisterOverlay() {
+        const overlay = document.getElementById("overlay");
+        if (overlay) overlay.style.display = "none";
+
+        // Hiển thị lại login form và benefits-area khi ẩn overlay
+        const loginFormArea = document.querySelector(".login-form-area");
+        const benefitsArea = document.querySelector(".benefits-area");
+        if (loginFormArea) loginFormArea.style.display = "block";
+        if (benefitsArea) benefitsArea.style.display = "block";
+      }
     </script>
 
   </body>
