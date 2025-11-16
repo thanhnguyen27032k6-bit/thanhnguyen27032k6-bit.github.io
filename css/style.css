@@ -1,6 +1,6 @@
 /* ← CSS chính (user) */
 /* Header  */
-
+ 
 * {
   box-sizing: border-box;
 }
@@ -1387,7 +1387,7 @@ button {
 
 .history-item .item-image {
   width: 60px; /* Chiều rộng cố định cho ảnh */
-  height: 60px;
+  height: auto;
   overflow: hidden;
   margin-right: 10px;
 }
@@ -1461,6 +1461,7 @@ button {
   gap: 20px;
   flex-wrap: wrap;
   padding-top: 10px;
+  justify-content:center;
 }
 
 .filter-group {

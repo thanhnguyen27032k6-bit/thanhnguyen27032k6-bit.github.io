@@ -158,6 +158,10 @@ document.addEventListener("DOMContentLoaded", function () {
       if (typeof attachProductDetailEvents === "function") {
         attachProductDetailEvents();
       }
+
+      if (typeof attachProductClick === "function") {
+        attachProductClick();
+      }
   
       renderPagination();
     }
@@ -227,7 +231,54 @@ document.addEventListener("DOMContentLoaded", function () {
       section.innerHTML = `
         <div class="container">
           <h1 class="page-title-main">${title}</h1>
-        </div>
+          
+          <div class="filter-options">
+            <div class="filter-group">
+              <label for="price-filter-${categoryName}">Giá:</label>
+              <select id="price-filter-${categoryName}" class="filter-select">
+                <option value="">Tất cả</option>
+                <option value="<1M">Dưới 1 triệu</option>
+                <option value="1M-3M">1 - 3 triệu</option>
+                <option value="3M-5M">3 - 5 triệu</option>
+                <option value=">5M">Trên 5 triệu</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="brand-filter-${categoryName}">Thương hiệu:</label>
+              <select id="brand-filter-${categoryName}" class="filter-select">
+                <option value="">Tất cả</option>
+                <option value="Casio">Casio</option>
+                <option value="Orient">Orient</option>
+                <option value="Seiko">Seiko</option>
+                <option value="Tissot">Tissot</option>
+                <option value="Citizen">Citizen</option>
+                <option value="Bentley">Bentley</option>
+                <option value="Olym Pianus">Olym Pianus</option>
+                <option value="Bonest Gatti">Bonest Gatti</option>
+                <option value="Carnival">Carnival</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="movement-filter-${categoryName}">Bộ máy:</label>
+              <select id="movement-filter-${categoryName}" class="filter-select">
+                <option value="">Tất cả</option>
+                <option value="Automatic">Automatic (Cơ)</option>
+                <option value="Quartz">Quartz (Pin)</option>
+                <option value="Hybrid">Hybrid</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="water-filter-${categoryName}">Chống nước:</label>
+              <select id="water-filter-${categoryName}" class="filter-select">
+                <option value="">Tất cả</option>
+                <option value="30m">30m (Rửa tay)</option>
+                <option value="50m">50m (Đi mưa)</option>
+                <option value="100m">100m (Bơi lội)</option>
+                <option value="200m">200m (Lặn)</option>
+              </select>
+            </div>
+          </div>
+          </div>
         <div id="${containerId}" class="product-list product-list-container"></div>
       `;
       
@@ -243,8 +294,42 @@ document.addEventListener("DOMContentLoaded", function () {
     
     if (container) {
       const products = window.getProducts({ category: categoryName });
-      renderPaginatedProducts(containerId, products, 8);
+      renderPaginatedProducts(containerId, products, 10);
     }
+
+    const page = document.getElementById(categoryName); // Lấy <section>
+      if (page) {
+        // Lấy tất cả các <select> trong section này
+        const filters = {
+          price: page.querySelector(`#price-filter-${categoryName}`),
+          brand: page.querySelector(`#brand-filter-${categoryName}`),
+          movement: page.querySelector(`#movement-filter-${categoryName}`),
+          water: page.querySelector(`#water-filter-${categoryName}`)
+        };
+
+        // Hàm để áp dụng bộ lọc
+        const applyFilters = () => {
+          const currentFilters = {
+            price: filters.price ? filters.price.value : "",
+            brand: filters.brand ? filters.brand.value : "",
+            movement: filters.movement ? filters.movement.value : "",
+            water: filters.water ? filters.water.value : ""
+          };
+          
+          // Lấy danh sách sản phẩm đã lọc
+          const filteredProducts = getFilteredProducts(categoryName, currentFilters);
+          
+          // Render lại danh sách sản phẩm với dữ liệu đã lọc
+          renderPaginatedProducts(containerId, filteredProducts, 8);
+        };
+
+        // Gắn sự kiện 'change' cho tất cả các <select>
+        Object.values(filters).forEach(selectElement => {
+          if (selectElement) {
+            selectElement.addEventListener('change', applyFilters);
+          }
+        });
+      }
   });
 
   // =================== HOT SALE (HIỂN THỊ TOÀN BỘ, KHÔNG PHÂN TRANG) ===================
@@ -269,6 +354,9 @@ if (hotContainer && hotProducts.length > 0) {
   // Gắn lại sự kiện mở modal chi tiết cho sản phẩm Hot Sale
   if (typeof attachProductDetailEvents === "function") {
     attachProductDetailEvents();
+  }
+  if (typeof attachProductClick === "function") {
+    attachProductClick();
   }
 }
 
@@ -313,116 +401,108 @@ function performSearch() {
   //KHỞI TẠO CUỐI CÙNG
   hienTrang("home"); // Khởi tạo lần đầu
 
-  function displayBrandProducts(brandName) {
+  //Lọc theo thương hiệu
+function displayBrandProducts(brandName) {
+    // 1. Chuyển sang trang chi tiết hãng
     hienTrang("brand-detail");
-    document.getElementById("brand-title").textContent =
-      brandName.toUpperCase();
+    document.getElementById("brand-title").textContent = brandName.toUpperCase();
 
-    const container = document.getElementById("brand-products-container");
+    const containerId = "brand-products-container"; 
     const noResults = document.getElementById("no-brand-products");
-    container.innerHTML = "";
-
-    // 🧩 Nhóm alias đặc biệt cho thương hiệu
+    
+    // 2. Nhóm alias 
     const brandAliases = {
-      "G-Shock": ["G-Shock", "G-Shock"], // tránh lỗi ký tự khác nhau
+      "G-Shock": ["G-Shock"],
       "Baby-G": ["Baby-G", "Baby G", "Casio Baby-G"],
-      Casio: ["Casio"], // chỉ Casio thường
+      "Casio": ["Casio"], 
       "Olym Pianus": ["Olym Pianus", "Olympia Star"],
-      Rolex: ["Rolex", "Giống Rolex"], // ✅ thêm alias cho Rolex
-      Tissot: ["Tissot"],
-      Orient: ["Orient"],
-      Seiko: ["Seiko"],
-      Citizen: ["Citizen"],
+      "Rolex": ["Rolex", "Giống Rolex"],
+      "Tissot": ["Tissot"],
+      "Orient": ["Orient"],
+      "Seiko": ["Seiko"],
+      "Citizen": ["Citizen"],
       "Bonest Gatti": ["Bonest Gatti"],
-      Hanboro: ["Hanboro"],
-      Movado: ["Movado"],
+      "Hanboro": ["Hanboro"],
+      "Movado": ["Movado"],
       "I&W Carnival": ["I&W Carnival", "Carnival"],
     };
+    // Tạo danh sách từ khóa (viết thường)
+    const keywords = (brandAliases[brandName] || [brandName]).map(k => k.toLowerCase());
+    const gShockKeyword = "g-shock";
+    const casioKeyword = "casio";
+    const allProducts = window.getProducts();
 
-    const keywords = brandAliases[brandName] || [brandName];
+    // 3. Lọc trên mảng DỮ LIỆU (product object), không phải DOM
+    const filtered = allProducts.filter(product => {
+        // Lấy tất cả các trường cần check (viết thường)
+        const name = (product.name || "").toLowerCase();
+        const brand = (product.brand || "").toLowerCase();
+        const description = (product.description || "").toLowerCase();
+        
+        // Logic đặc biệt cho Casio (loại G-Shock)
+        if (brandName === "Casio") {
+            // Phải chứa "casio" (trong brand, name, hoặc desc)
+            const isCasio = brand.includes(casioKeyword) || 
+                            name.includes(casioKeyword) || 
+                            description.includes(casioKeyword);
+            
+            // VÀ KHÔNG được chứa "g-shock" (trong brand, name, hoặc desc)
+            const isGShock = brand.includes(gShockKeyword) || 
+                             name.includes(gShockKeyword) || 
+                             description.includes(gShockKeyword);
+            
+            return isCasio && !isGShock;
+        }
 
-    // 🔍 Lấy toàn bộ sản phẩm có trong trang index
-    const allProducts = Array.from(document.querySelectorAll(".product-card"));
+        if (brandName === "G-Shock") {
+            // Phải chứa "g-shock" (trong brand, name, hoặc desc)
+            return brand.includes(gShockKeyword) || 
+                   name.includes(gShockKeyword) || 
+                   description.includes(gShockKeyword);
+        }
 
-    // 🔎 Lọc sản phẩm có tên hoặc alt chứa các từ khóa alias
-    const filtered = allProducts.filter((card) => {
-      const name =
-        card.querySelector(".product-name")?.textContent.toLowerCase() || "";
-      const alt = card.querySelector("img")?.alt.toLowerCase() || "";
-
-      // Nếu đang lọc Casio → loại bỏ G-Shock
-      if (brandName === "Casio") {
-        return (
-          (name.includes("casio") || alt.includes("casio")) &&
-          !name.includes("g-shock") &&
-          !alt.includes("g-shock")
+        return keywords.some(
+            (keyword) => 
+                name.includes(keyword) || 
+                brand.includes(keyword) || 
+                description.includes(keyword) 
         );
-      }
-
-      // Nếu đang lọc G-Shock → chỉ lấy có chữ G-Shock
-      if (brandName === "G-Shock") {
-        return name.includes("g-shock") || alt.includes("g-shock");
-      }
-
-      // Các hãng khác
-      return keywords.some(
-        (keyword) =>
-          name.includes(keyword.toLowerCase()) ||
-          alt.includes(keyword.toLowerCase())
-      );
     });
 
-    // 🎨 Hiển thị kết quả
+    // 4. HIỂN THỊ KẾT QUẢ
     if (filtered.length > 0) {
-      container.style.display = "flex";
-      filtered.forEach((card) => {
-        const img = card.querySelector("img");
-        const name = card.querySelector(".product-name").textContent;
-        const price = card.querySelector(".product-price").textContent;
-        const oldPrice =
-          card.querySelector(".product-oldprice")?.textContent || "";
-
-        container.insertAdjacentHTML(
-          "beforeend",
-          `
-          <div class="product-card">
-            <img src="${img.src}" alt="${img.alt}">
-            <div class="product-name">${name}</div>
-            <div class="product-price">${price}</div>
-            <div class="product-oldprice">${oldPrice}</div>
-            <button class="compare-btn" type="button">So sánh</button>
-          </div>
-        `
-        );
-      });
-
-      noResults.style.display = "none";
-      attachProductDetailEvents(); // Gắn lại modal chi tiết
+        noResults.style.display = "none";
+        // Tái sử dụng hàm render có phân trang đã có trong main.js
+        // Hàm này sẽ tự động gọi attachProductDetailEvents()
+        renderPaginatedProducts(containerId, filtered, 12); 
     } else {
-      container.style.display = "block";
-      noResults.style.display = "block";
-      noResults.textContent = `Không tìm thấy sản phẩm nào của hãng ${brandName.toUpperCase()}.`;
+        // Nếu không có kết quả, xóa nội dung cũ và báo lỗi
+        const container = document.getElementById(containerId);
+        container.innerHTML = ""; // Xóa phân trang/sản phẩm cũ
+        container.style.display = "block"; 
+        noResults.style.display = "block";
+        noResults.textContent = `Không tìm thấy sản phẩm nào của hãng ${brandName.toUpperCase()}.`;
     }
-  }
+}
 
-  // 5. Gắn sự kiện Click cho các thẻ hãng
-  const brandLinks = document.querySelectorAll(
-    ".product-categories .brand-link"
-  );
+// 5. Gắn sự kiện Click (Đã xóa lời gọi hàm bị lặp)
+const brandLinks = document.querySelectorAll(
+  ".product-categories .brand-link"
+);
 
-  brandLinks.forEach((link) => {
-    link.addEventListener("click", function (e) {
-      e.preventDefault();
-      const brandName = this.getAttribute("data-brand");
-      if (brandName) {
-        displayBrandProducts(brandName);
-        attachProductDetailEvents(); // Gắn lại sự kiện mở chi tiết cho sản phẩm mới
-      }
-    });
+brandLinks.forEach((link) => {
+  link.addEventListener("click", function (e) {
+    e.preventDefault();
+    const brandName = this.getAttribute("data-brand");
+    if (brandName) {
+      displayBrandProducts(brandName);
+      // Không cần gọi attachProductDetailEvents() ở đây nữa
+    }
   });
+});
 
   // === LỊCH SỬ XEM SẢN PHẨM ===
-  const MAX_HISTORY_ITEMS = 15;
+  const MAX_HISTORY_ITEMS = 10;
   const historySections = document.querySelectorAll(".viewed-history-section");
 
   // Hàm tạo thẻ sản phẩm trong lịch sử
@@ -507,7 +587,17 @@ function performSearch() {
   // Gắn sự kiện click vào sản phẩm để lưu lịch sử
   function attachProductClick() {
     document.querySelectorAll(".product-card").forEach((card) => {
-      card.addEventListener("click", () => {
+      // Thêm cờ để tránh gắn sự kiện lặp lại
+      if (card.dataset.historyBound === "true") return;
+      card.dataset.historyBound = "true";
+
+      card.addEventListener("click", (e) => {
+        // Chặn khi click vào nút khác
+        if (
+          e.target.classList.contains("compare-btn") ||
+          e.target.classList.contains("add-to-cart-btn")
+        ) return;
+
         const img = card.querySelector("img").src;
         const name = card.querySelector(".product-name").textContent;
         const price = card.querySelector(".product-price").textContent;
@@ -529,58 +619,58 @@ function performSearch() {
   renderViewedHistory();
 
   //LỌC SP
-  function setupFilter(pageId) {
-    const page = document.getElementById(pageId);
-    if (!page) return;
+  function getFilteredProducts(categoryName, filters) {
+    // Lấy tất cả sản phẩm cho danh mục này
+    let allProducts = window.getProducts({ category: categoryName });
 
-    const products = page.querySelectorAll(".product-card");
-    const priceFilter = page.querySelector(`#price-filter-${pageId}`);
-    const brandFilter = page.querySelector(`#brand-filter-${pageId}`);
+    // Áp dụng các bộ lọc
+    return allProducts.filter(product => {
+      const specs = product.specs || {};
+      const price = product.price || 0;
+      const brand = product.brand || "";
+      const movement = (specs.movement || "").toLowerCase();
+      const waterResistance = (specs.waterResistance || "").toLowerCase();
 
-    if (!priceFilter || !brandFilter) return;
-
-    const productData = Array.from(products).map((product) => {
-      const name = product.querySelector(".product-name").innerText.trim();
-      const priceText = product.querySelector(".product-price").innerText;
-      const price = parseFloat(priceText.replace(/[^\d]/g, "")) || 0;
-      return { element: product, name, price };
-    });
-
-    function matchPrice(price, filterValue) {
-      switch (filterValue) {
-        case "<1M":
-          return price < 1000000;
-        case "1M-3M":
-          return price >= 1000000 && price <= 3000000;
-        case "3M-5M":
-          return price > 3000000 && price <= 5000000;
-        case ">5M":
-          return price > 5000000;
-        default:
-          return true;
+      // 1. Lọc Giá
+      if (filters.price) {
+        switch (filters.price) {
+          case "<1M": if (price >= 1000000) return false; break;
+          case "1M-3M": if (price < 1000000 || price > 3000000) return false; break;
+          case "3M-5M": if (price < 3000000 || price > 5000000) return false; break;
+          case ">5M": if (price <= 5000000) return false; break;
+        }
       }
-    }
 
-    function filterProducts() {
-      const priceValue = priceFilter.value;
-      const brandValue = brandFilter.value.toLowerCase();
+      // 2. Lọc Thương hiệu
+      if (filters.brand && brand.toLowerCase() !== filters.brand.toLowerCase()) {
+        return false;
+      }
 
-      productData.forEach(({ element, name, price }) => {
-        const matchesBrand =
-          !brandValue || name.toLowerCase().includes(brandValue);
-        const matchesPrice = matchPrice(price, priceValue);
-        element.style.display = matchesBrand && matchesPrice ? "block" : "none";
-      });
-    }
+      // 3. Lọc Bộ máy (MỚI)
+      if (filters.movement && movement !== filters.movement.toLowerCase()) {
+        return false;
+      }
 
-    priceFilter.addEventListener("change", filterProducts);
-    brandFilter.addEventListener("change", filterProducts);
+      // 4. Lọc Chống nước (MỚI)
+      if (filters.water) {
+        const filterWater = filters.water.toLowerCase(); // vd: "50m"
+        
+        if (filterWater === "30m") {
+          // Nếu lọc 30m, bao gồm "30m" và "water resistant" (thường là mức 30m)
+          if (waterResistance !== "30m" && waterResistance !== "water resistant") {
+            return false;
+          }
+        } else {
+          // Với các mức 50m, 100m, 200m, yêu cầu khớp chính xác
+          if (waterResistance !== filterWater) {
+            return false;
+          }
+        }
+      }
+
+      return true; // Sản phẩm vượt qua tất cả bộ lọc
+    });
   }
-
-  // Kích hoạt bộ lọc cho từng trang
-  setupFilter("xuhuong");
-  setupFilter("nam");
-  setupFilter("nu");
 
   // ===================== GIỎ HÀNG NÂNG CAO =====================
 

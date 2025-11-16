@@ -66,29 +66,29 @@
                 <div class="summary-grid">
                     <div class="summary-card">
                         <i class="fas fa-box"></i>
-                        <h3>150</h3>
+                        <h3 id="totalStockValue">0</h3>
                         <p>Tổng Sản phẩm</p>
+                    </div><div class="summary-card">
+                        <i class="fas fa-box"></i>
+                        <h3 id="totalProductTypesValue">0</h3>
+                        <p>Loại sản phẩm</p>
                     </div>
                     <div class="summary-card">
                         <i class="fas fa-shopping-basket"></i>
-                        <h3>45</h3>
-                        <p>Đơn hàng mới</p>
+                        <h3 id="totalOrdersValue">0</h3>
+                        <p>Đơn hàng</p>
                     </div>
                     <div class="summary-card">
-                        <i class="fas fa-users"></i>
-                        <h3>1,200</h3>
-                        <p>Tổng Khách hàng</p>
+                        <i class="fa-solid fa-money-bill"></i>
+                        <h3 id="totalRevenueValue">0</h3>
+                        <p>doanh thu</p>
                     </div>
-                    <div class="summary-card">
-                        <i class="fas fa-dollar-sign"></i>
-                        <h3>150M</h3>
-                        <p>Doanh thu (Tháng)</p>
-                    </div>
+                    
                 </div>
 
                 <div class="data-table">
-                    <h2>Đơn hàng mới nhất</h2>
-                    <table>
+                    <h2>Đơn hàng mới nhất (3 đơn gần nhất)</h2>
+                    <table id="recentOrdersTable">
                         <thead>
                             <tr>
                                 <th>Mã ĐH</th>
@@ -99,28 +99,7 @@
                                 <th>Thao tác</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td>#DH0001</td>
-                                <td>Nguyễn Văn A</td>
-                                <td>28/10/2025</td>
-                                <td>1.500.000₫</td>
-                                <td><span class="status-pending">Đang chờ xử lý</span></td>
-                                <td class="action-links">
-                                    <a href="#">Xem</a>
-                                    <a href="#">Duyệt</a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>#DH0002</td>
-                                <td>Trần Thị B</td>
-                                <td>27/10/2025</td>
-                                <td>5.700.000₫</td>
-                                <td><span class="status-delivered">Đã giao hàng</span></td>
-                                <td class="action-links">
-                                    <a href="#">Xem</a>
-                                </td>
-                            </tr>
+                        <tbody id="recentOrdersTableBody">
                         </tbody>
                     </table>
                 </div>
@@ -391,6 +370,14 @@
                                 style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; min-width: 250px;">
                         </div>
 
+                        <div>
+                            <label for="categoryFilter" style="font-weight: bold;">Lọc theo Danh mục:</label>
+                            <select id="categoryFilter"
+                                style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; min-width: 180px;">
+                                <option value="all">-- Tất cả Danh mục --</option>
+                            </select>
+                        </div>
+
                         <button id="resetFilterBtn"
                             style="padding: 8px 15px; border-radius: 4px; background-color: #f4f4f4; border: 1px solid #ccc; cursor: pointer; height: 38px;"><i
                                 class="fas fa-undo"></i> Reset</button>
@@ -402,8 +389,10 @@
                                 <th>Tên sản phẩm</th>
                                 <th>Thương hiệu</th>
                                 <th>Danh mục</th>
-                                <th>Số lượng tồn</th>
-                                <th>Giá vốn/1sp</th>
+                                <th class="sortable-header" data-sort-field="stock">Số lượng tồn <i class="fas fa-arrows-alt-v"></i></th>
+                                <th class="sortable-header" data-sort-field="costPrice">Giá vốn/1sp <i class="fas fa-arrows-alt-v"></i></th>
+                                <th class="sortable-header" data-sort-field="profitMargin">% Lợi nhuận <i class="fas fa-arrows-alt-v"></i></th>
+                                <th class="sortable-header" data-sort-field="price">Giá bán <i class="fas fa-arrows-alt-v"></i></th>
                             </tr>
                         </thead>
                         <tbody id="inventoryTableBody"></tbody>
@@ -500,6 +489,39 @@
                 <button type="button" class="close-btn" style="background-color: #f44336; float: right;"><i
                         class="fas fa-times"></i> Huỷ</button>
             </form>
+        </div>
+    </div>
+    <!-- Order Detail Modal -->
+    <div id="orderDetailModal" class="modal" style="display:none; position: fixed; inset:0; background: rgba(0,0,0,0.5); z-index:1200; align-items:center; justify-content:center; overflow-y:auto;">
+        <div style="background:#fff; max-width:900px; width:90%; margin:auto; border-radius:8px; padding:20px; position:relative; top:50%; transform:translateY(-50%); max-height:80vh; overflow-y:auto;">
+            <button class="close-order-detail" style="position:absolute; right:12px; top:8px; border:none; background:none; font-size:24px; cursor:pointer; z-index:1;">&times;</button>
+            <div id="orderDetailContent" style="overflow-y:auto; max-height:calc(80vh - 40px);"></div>
+        </div>
+    </div>
+
+    <!-- Update Status Modal (fallback/manual update) -->
+    <div id="updateStatusModal" class="modal" style="display:none; position: fixed; inset:0; background: rgba(0,0,0,0.5); z-index:1200; align-items:center; justify-content:center;">
+        <div style="background:#fff; max-width:480px; width:95%; margin:auto; border-radius:8px; padding:18px; position:relative; top:50%; transform:translateY(-50%);">
+            <h3 style="margin-top:0;">Cập nhật trạng thái đơn hàng</h3>
+            <div style="margin-bottom:10px;">
+                <label for="new-status-select"><strong>Chọn trạng thái</strong></label>
+                <select id="new-status-select" style="width:100%; padding:8px; margin-top:6px;">
+                    <option value="">-- Chọn trạng thái --</option>
+                    <option value="pending">Chờ xác nhận</option>
+                    <option value="confirmed">Đã xác nhận</option>
+                    <option value="shipping">Đang giao hàng</option>
+                    <option value="completed">Đã hoàn thành</option>
+                    <option value="cancelled">Đã hủy</option>
+                </select>
+            </div>
+            <div style="margin-bottom:12px; display:none;" id="cancel-reason-wrap">
+                <label for="cancel-reason">Lý do hủy (không bắt buộc)</label>
+                <textarea id="cancel-reason" style="width:100%; padding:8px; margin-top:6px;"></textarea>
+            </div>
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button id="btn-cancel-update" style="background:#6c757d; color:#fff; border:none; padding:8px 14px; border-radius:6px;">Hủy</button>
+                <button id="btn-confirm-update" style="background:#007bff; color:#fff; border:none; padding:8px 14px; border-radius:6px;">Lưu</button>
+            </div>
         </div>
     </div>
     <script src="../js/data.js"></script>
@@ -614,6 +636,11 @@
                     if (targetSection) {
                         targetSection.style.display = 'block';
                         pageTitle.textContent = link.textContent.trim();
+                        // Cập nhật 3 đơn hàng mới nhất khi vào dashboard
+                        if (targetId === 'dashboard') {
+                            updateDashboardMetrics();
+                            renderRecentOrders();
+                        }
                     }
                 }
             });
@@ -984,6 +1011,8 @@ productRender();
 
         function saveCategories() {
             localStorage.setItem("categories", JSON.stringify(categories));
+            // Cập nhật lại dropdown lọc danh mục nếu tồn tại
+            try { if (typeof populateCategoryFilter === 'function') populateCategoryFilter(); } catch(e) { console.warn(e); }
         }
 
         const CateTableBody = document.getElementById("CateTableBody");
@@ -1107,6 +1136,7 @@ productRender();
         }
 
         renderCategories();
+        try { if (typeof populateCategoryFilter === 'function') populateCategoryFilter(); } catch(e) { console.warn(e); }
 
         /*==============================================================================
         ==================== CODE PHẦN KHO ===========================================*/
@@ -1115,6 +1145,7 @@ productRender();
         const productSearch = document.getElementById("productSearch");
         const resetFilterBtn = document.getElementById("resetFilterBtn");
         const inventoryTableBody = document.getElementById("inventoryTableBody");
+    const categoryFilter = document.getElementById("categoryFilter");
 
         //sau này liên kết với phiếu nhập hàng để có số lượng
         // Đồng bộ dữ liệu kho với danh sách sản phẩm
@@ -1174,6 +1205,20 @@ productRender();
             });
         }
 
+        // Populate category filter from admin categories (not from products)
+        function populateCategoryFilter() {
+            // categories is the admin-managed array (from localStorage or initial value)
+            const cats = (Array.isArray(categories) ? categories : (JSON.parse(localStorage.getItem('categories')) || []));
+            if (!categoryFilter) return;
+            categoryFilter.innerHTML = `<option value="all">-- Tất cả Danh mục --</option>`;
+            cats.forEach(c => {
+                if (!c || !c.name) return;
+                // Exclude hidden categories from the filter (consistent with product dropdown behavior)
+                if (c.hidden) return;
+                categoryFilter.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+        }
+
         function renderInventoryTable() {
     if (!inventoryTableBody) return;
 
@@ -1183,24 +1228,49 @@ productRender();
     const selectedBrand = brandFilter.value;
     const searchTerm = productSearch.value.toLowerCase().trim();
 
-    const filteredData = inventoryData.filter(item => {
-        const matchesBrand = selectedBrand === 'all' || item.brand === selectedBrand;
-        const matchesSearch = item.name.toLowerCase().includes(searchTerm);
-        return matchesBrand && matchesSearch;
-    });
+    const selectedCategory = categoryFilter ? categoryFilter.value : 'all';
 
+    // normalize helper: use existing createSlug() so accents/spaces/case don't break matching
+    const normalize = (s) => createSlug(String(s || ''));
+
+    let filteredData = inventoryData.filter(item => {
+        const matchesBrand = selectedBrand === 'all' || item.brand === selectedBrand;
+        const itemCat = item.category || '';
+        const matchesCategory = selectedCategory === 'all' || normalize(itemCat) === normalize(selectedCategory);
+        const matchesSearch = item.name.toLowerCase().includes(searchTerm);
+        return matchesBrand && matchesCategory && matchesSearch;
+    });
     inventoryTableBody.innerHTML = "";
 
     if (filteredData.length === 0) {
-        inventoryTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px;">Không tìm thấy sản phẩm nào phù hợp với điều kiện lọc.</td></tr>`;
+        inventoryTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px;">Không tìm thấy sản phẩm nào phù hợp với điều kiện lọc.</td></tr>`;
         return;
     }
 
-    filteredData.sort((a, b) => {
-        const brandCompare = a.brand.localeCompare(b.brand);
-        if (brandCompare !== 0) return brandCompare;
-        return a.name.localeCompare(b.name);
-    });
+    // Sắp xếp mặc định: theo thương hiệu và tên
+    const currentSortField = inventoryTableBody.dataset.sortField || null;
+    const currentSortDir = inventoryTableBody.dataset.sortDir || 'asc';
+
+    if (currentSortField) {
+        filteredData.sort((a, b) => {
+            let aVal = a[currentSortField];
+            let bVal = b[currentSortField];
+            
+            if (typeof aVal === 'string') {
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+                return currentSortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            } else {
+                return currentSortDir === 'asc' ? aVal - bVal : bVal - aVal;
+            }
+        });
+    } else {
+        filteredData.sort((a, b) => {
+            const brandCompare = a.brand.localeCompare(b.brand);
+            if (brandCompare !== 0) return brandCompare;
+            return a.name.localeCompare(b.name);
+        });
+    }
 
     filteredData.forEach(item => {
         // ✅ XỬ LÝ ĐƯỜNG DẪN ẢNH TRONG KHO
@@ -1213,6 +1283,8 @@ productRender();
             imgSrc = "../" + item.image;
         }
 
+        const profitMargin = item.profitMargin || 0;
+
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>
@@ -1224,11 +1296,13 @@ productRender();
             <td>${item.brand}</td>
             <td>${item.category.toUpperCase()}</td>
             <td>
-                <span style="font-weight: bold; color: ${item.stock < 20 ? 'red' : 'green'};">
+                <span style="font-weight: bold; color: ${item.stock < 15 ? 'red' : 'green'};">
                     ${item.stock.toLocaleString()}
                 </span>
             </td>
             <td>${item.costPrice ? item.costPrice.toLocaleString() + '₫' : 'Chưa có'}</td>
+            <td><span style="color: #059669; font-weight: bold;">${profitMargin}%</span></td>
+            <td><span style="color: #1e40af; font-weight: bold;">${item.price ? item.price.toLocaleString() + '₫' : 'N/A'}</span></td>
         `;
         inventoryTableBody.appendChild(row);
     });
@@ -1240,12 +1314,16 @@ productRender();
             // Sự kiện khi chọn Thương hiệu khác
             brandFilter.addEventListener('change', renderInventoryTable);
 
+            // Sự kiện khi chọn Danh mục
+            if (categoryFilter) categoryFilter.addEventListener('change', renderInventoryTable);
+
             // Sự kiện khi gõ vào ô tìm kiếm (tìm kiếm tức thời)
             productSearch.addEventListener('input', renderInventoryTable);
 
             // Sự kiện khi bấm nút Reset
             resetFilterBtn.addEventListener('click', () => {
                 brandFilter.value = 'all';
+                if (categoryFilter) categoryFilter.value = 'all';
                 productSearch.value = ''; // Reset ô tìm kiếm
                 renderInventoryTable();
             });
@@ -1264,11 +1342,12 @@ productRender();
                             targetSection.style.display = 'block';
                             pageTitle.textContent = link.textContent.trim();
                             // Kích hoạt hàm khi tab "Kho" được mở
-                            if (targetId === 'posts') {
+                                if (targetId === 'posts') {
                                 const currentProducts = JSON.parse(localStorage.getItem("products")) || [];
                                 // Đồng bộ inventory với products: tự thêm sản phẩm mới vào kho nếu thiếu
                                 syncInventoryWithProducts();
                                 populateBrandFilter(currentProducts);
+                                try { if (typeof populateCategoryFilter === 'function') populateCategoryFilter(); } catch(e) { console.warn(e); }
                                 renderInventoryTable();
                             }
                         }
@@ -1283,7 +1362,123 @@ productRender();
         // Giữ lại productRender() để đảm bảo bảng sản phẩm hoạt động
         productRender();
 
-        /* ==================== QUẢN LÝ NGƯỜI DÙNG ==================== */
+        // ==================== CẬP NHẬT DASHBOARD METRICS ====================
+        function updateDashboardMetrics() {
+            // 1. Tổng Sản phẩm (tổng số lượng tồn kho)
+            const inventory = JSON.parse(localStorage.getItem("inventory")) || [];
+            const totalStock = inventory.reduce((sum, item) => sum + (item.stock || 0), 0);
+            const totalStockEl = document.getElementById('totalStockValue');
+            if (totalStockEl) totalStockEl.textContent = totalStock.toLocaleString('vi-VN');
+
+            // 2. Loại sản phẩm (số lượng sản phẩm khác nhau)
+            const currentProducts = JSON.parse(localStorage.getItem("products")) || [];
+            const totalProductTypes = currentProducts.length;
+            const totalProductTypesEl = document.getElementById('totalProductTypesValue');
+            if (totalProductTypesEl) totalProductTypesEl.textContent = totalProductTypes;
+
+            // 3. Đơn hàng (tổng số lượng đơn hàng)
+            const userOrders = JSON.parse(localStorage.getItem("userOrders")) || [];
+            const totalOrders = userOrders.length;
+            const totalOrdersEl = document.getElementById('totalOrdersValue');
+            if (totalOrdersEl) totalOrdersEl.textContent = totalOrders;
+
+            // 4. Doanh thu (tổng của tất cả đơn hàng)
+            const totalRevenue = userOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+            const totalRevenueEl = document.getElementById('totalRevenueValue');
+            if (totalRevenueEl) totalRevenueEl.textContent = totalRevenue.toLocaleString('vi-VN') + '₫';
+        }
+
+        // ==================== HIỂN THỊ 3 ĐƠN HÀNG MỚI NHẤT TRÊN DASHBOARD ====================
+        function renderRecentOrders() {
+            const recentOrdersTableBody = document.getElementById('recentOrdersTableBody');
+            if (!recentOrdersTableBody) return;
+
+            const userOrders = JSON.parse(localStorage.getItem("userOrders")) || [];
+            
+            // Sắp xếp theo ngày đặt giảm dần (mới nhất lên trước)
+            const sortedOrders = userOrders.sort((a, b) => {
+                const dateA = new Date(a.orderDate || 0);
+                const dateB = new Date(b.orderDate || 0);
+                return dateB - dateA;
+            });
+
+            // Lấy 3 đơn gần nhất
+            const recentOrders = sortedOrders.slice(0, 3);
+
+            recentOrdersTableBody.innerHTML = "";
+
+            if (recentOrders.length === 0) {
+                recentOrdersTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #999;">Chưa có đơn hàng nào</td></tr>';
+                return;
+            }
+
+            recentOrders.forEach(order => {
+                const orderDate = new Date(order.orderDate).toLocaleDateString('vi-VN');
+                const statusText = {
+                    pending: 'Chờ xác nhận',
+                    confirmed: 'Đã xác nhận',
+                    shipping: 'Đang giao hàng',
+                    completed: 'Đã hoàn thành',
+                    cancelled: 'Đã hủy'
+                }[order.status] || order.status;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${order.id}</strong></td>
+                    <td>${order.shippingInfo?.fullname || 'N/A'}</td>
+                    <td>${orderDate}</td>
+                    <td><strong>${(order.total || 0).toLocaleString()}₫</strong></td>
+                    <td><span class="status-badge status-${order.status}">${statusText}</span></td>
+                    <td>
+                        <a href="#orders" style="color: #1e40af; font-weight: 600; cursor: pointer;" onclick="goToOrdersTab()">Xem chi tiết</a>
+                    </td>
+                `;
+                recentOrdersTableBody.appendChild(row);
+            });
+        }
+
+        function goToOrdersTab() {
+            document.querySelector('a[href="#orders"]').click();
+        }
+
+        // Gọi hàm hiển thị 3 đơn hàng mới nhất khi dashboard load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDashboardMetrics();
+            renderRecentOrders();
+        });
+
+        // ==================== THIẾT LẬP SẮPARENT XẮP CHO INVENTORY TABLE ====================
+        const inventoryTableHeaders = document.querySelectorAll('.sortable-header');
+        
+        inventoryTableHeaders.forEach(header => {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', function() {
+                const sortField = this.dataset.sortField;
+                const tbody = document.getElementById('inventoryTableBody');
+                
+                // Reset tất cả header
+                inventoryTableHeaders.forEach(h => {
+                    h.innerHTML = h.innerHTML.replace(/<i class="fas fa-arrow-[^"]+"><\/i>/g, '<i class="fas fa-arrows-alt-v"></i>');
+                });
+
+                // Xác định hướng sắp xếp
+                let sortDir = 'asc';
+                if (tbody.dataset.sortField === sortField && tbody.dataset.sortDir === 'asc') {
+                    sortDir = 'desc';
+                }
+
+                // Cập nhật dữ liệu sort
+                tbody.dataset.sortField = sortField;
+                tbody.dataset.sortDir = sortDir;
+
+                // Cập nhật icon mũi tên
+                const icon = sortDir === 'asc' ? 'fa-arrow-up' : 'fa-arrow-down';
+                this.innerHTML = `${this.textContent.replace(/\s*<i.*<\/i>/g, '').trim()} <i class="fas ${icon}"></i>`;
+
+                // Re-render table
+                renderInventoryTable();
+            });
+        });
 
         // Đồng bộ users từ user.html vào localStorage
         function syncUsersFromUserPage() {
@@ -1956,10 +2151,10 @@ productRender();
                             <button class="btn-view-detail" data-order-id="${order.id}" title="Xem chi tiết">
                                 <i class="fas fa-eye"></i> Xem
                             </button>
-                            <button class="btn-update-status" data-order-id="${order.id}" title="Cập nhật trạng thái">
-                                <i class="fas fa-edit"></i> Cập nhật
+                            <button class="btn-advance-status" data-order-id="${order.id}" title="Chuyển trạng thái">
+                                <i class="fas fa-step-forward"></i> Chuyển
                             </button>
-                            ${order.status !== "completed" && order.status !== "cancelled" ? `
+                            ${order.status === "pending" ? `
                                 <button class="btn-cancel-order" data-order-id="${order.id}" title="Hủy đơn">
                                     <i class="fas fa-ban"></i> Hủy
                                 </button>
@@ -1969,10 +2164,109 @@ productRender();
                 `;
             }
 
-            createOrderDetailHTML(order) {
-                const statusInfo = this.statusOptions[order.status];
+            // Trả về trạng thái tiếp theo trong luồng xử lý
+            getNextStatus(current) {
+                const orderFlow = ["pending", "confirmed", "shipping", "completed"];
+                const idx = orderFlow.indexOf(current);
+                if (idx === -1 || idx === orderFlow.length - 1) return null;
+                return orderFlow[idx + 1];
+            }
 
-                let itemsHTML = order.items.map(item => `
+            // Tiến trạng đơn hàng lên trạng thái tiếp theo tự động
+            advanceOrderStatus(orderId) {
+                const order = this.searchByOrderId(orderId);
+                if (!order) return { success: false, message: 'Không tìm thấy đơn hàng' };
+                const next = this.getNextStatus(order.status);
+                if (!next) return { success: false, message: 'Đơn hàng đã ở trạng thái cuối' };
+                const result = this.updateOrderStatus(orderId, next);
+                if (result.success && next === 'confirmed') {
+                    this.updateInventoryFromOrder(order, 'deduct');
+                    // Lưu lại orders và products sau khi cập nhật
+                    this.saveOrders();
+                }
+                return result;
+            }
+
+            // Cập nhật kho hàng khi đơn hàng chuyển sang xác nhận hoặc hủy
+            // Logic tương tự như updateInventoryAndProductData (phiếu nhập)
+            updateInventoryFromOrder(order, action) {
+                // Read current data
+                let inventory = JSON.parse(localStorage.getItem('inventory')) || [];
+                let products = JSON.parse(localStorage.getItem('products')) || [];
+
+                console.log('📋 Bắt đầu cập nhật kho cho đơn hàng:', order.id);
+                console.log('📦 Inventory trước:', inventory);
+
+                // Chuẩn bị dữ liệu chi tiết từ items của đơn hàng
+                // Map tên sản phẩm -> id -> quantity
+                if (!Array.isArray(order.items)) order.items = [];
+                const detailMap = {};
+
+                order.items.forEach(item => {
+                    // Bước 1: Tìm product bằng tên để lấy id
+                    const product = products.find(p => p.name === item.name);
+                    if (!product || !product.id) {
+                        console.warn(`⚠️ Không tìm thấy sản phẩm: ${item.name}`);
+                        return;
+                    }
+
+                    const pid = String(product.id).trim();
+                    detailMap[pid] = {
+                        quantity: Number(item.quantity) || 0,
+                        name: item.name,
+                        processed: false
+                    };
+                    console.log(`🔍 Tìm thấy product ID: ${pid} cho sản phẩm: ${item.name}`);
+                });
+
+                console.log('📊 Detail Map:', detailMap);
+
+                // Bước 2: Cập nhật inventory items đã tồn tại
+                inventory = inventory.map(inv => {
+                    const pid = String(inv.productId).trim();
+                    if (detailMap[pid]) {
+                        const oldStock = Number(inv.stock) || 0;
+                        let newStock = oldStock;
+
+                        if (action === 'deduct') {
+                            // Trừ stock khi confirmed
+                            newStock = oldStock - detailMap[pid].quantity;
+                            if (newStock < 0) newStock = 0;
+                            console.log(`📦 Trừ ${detailMap[pid].quantity} từ ${detailMap[pid].name}: ${oldStock} → ${newStock}`);
+                        } else if (action === 'refund') {
+                            // Hoàn lại khi hủy
+                            newStock = oldStock + detailMap[pid].quantity;
+                            console.log(`↩️ Hoàn lại ${detailMap[pid].quantity} cho ${detailMap[pid].name}: ${oldStock} → ${newStock}`);
+                        }
+
+                        inv.stock = newStock;
+                        detailMap[pid].processed = true;
+                    }
+                    return inv;
+                });
+
+                // Bước 3: Thêm inventory entries mới nếu product chưa có trong inventory
+                Object.keys(detailMap).forEach(pid => {
+                    if (!detailMap[pid].processed) {
+                        const qty = detailMap[pid].quantity;
+                        if (action === 'deduct') {
+                            // Tạo entry mới với stock = -quantity (nợ)
+                            inventory.push({ productId: pid, stock: -qty });
+                            console.log(`✨ Tạo mới inventory cho ${detailMap[pid].name} (ID: ${pid}) với stock: ${-qty}`);
+                        }
+                        detailMap[pid].processed = true;
+                    }
+                });
+
+                // Bước 4: Lưu cập nhật
+                localStorage.setItem('inventory', JSON.stringify(inventory));
+                console.log('✅ Inventory sau cập nhật:', inventory);
+            }
+
+            createOrderDetailHTML(order) {
+                    const statusInfo = this.statusOptions[order.status];
+
+                    let itemsHTML = order.items.map(item => `
                     <tr>
                         <td>
                             <img src="${item.image}" alt="${item.name}" onerror="this.src='../image/no-image.png';">
@@ -1984,7 +2278,9 @@ productRender();
                     </tr>
                 `).join("");
 
-                return `
+                    const displayOrderDate = order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : '';
+
+                    return `
                     <div class="detail-header">
                         <h2>${order.id}</h2>
                         <span class="status-badge status-${order.status}">
@@ -2002,7 +2298,7 @@ productRender();
                                 </tr>
                                 <tr>
                                     <td><strong>Ngày đặt:</strong></td>
-                                    <td>${order.orderDate}</td>
+                                    <td>${displayOrderDate}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Trạng thái:</strong></td>
@@ -2094,6 +2390,7 @@ productRender();
             setInterval(() => {
                 orderManager.orders = JSON.parse(localStorage.getItem("userOrders")) || [];
                 renderOrders();
+                renderRecentOrders(); // Cập nhật 3 đơn hàng mới nhất trên dashboard
             }, 5000);
         });
 
@@ -2131,11 +2428,18 @@ productRender();
                 });
             });
 
-            document.querySelectorAll('.btn-update-status').forEach(btn => {
+            document.querySelectorAll('.btn-advance-status').forEach(btn => {
                 btn.addEventListener('click', function () {
                     const orderId = this.dataset.orderId;
-                    currentEditingOrderId = orderId;
-                    showUpdateStatusModal();
+                    const res = orderManager.advanceOrderStatus(orderId);
+                    if (res.success) {
+                        // Nếu vừa chuyển status từ pending -> confirmed thì không còn hủy được
+                        orderManager.saveOrders();
+                        renderOrders();
+                        alert('✅ ' + res.message);
+                    } else {
+                        alert('❌ ' + res.message);
+                    }
                 });
             });
 
@@ -2145,8 +2449,15 @@ productRender();
                     const order = orderManager.searchByOrderId(orderId);
                     if (confirm(`Hủy đơn hàng ${orderId}?\n\nKhách: ${order.shippingInfo.fullname}`)) {
                         currentEditingOrderId = orderId;
-                        document.getElementById('new-status-select').value = 'cancelled';
-                        showUpdateStatusModal();
+                        // Hủy trực tiếp
+                        const res = orderManager.updateOrderStatus(orderId, 'cancelled');
+                        if (res.success) {
+                            // Khi hủy: giữ nguyên số lượng (không cập nhật kho)
+                            alert('✅ Đã hủy đơn hàng');
+                            renderOrders();
+                        } else {
+                            alert('❌ ' + res.message);
+                        }
                     }
                 });
             });
@@ -2157,24 +2468,37 @@ productRender();
             const content = document.getElementById('orderDetailContent');
 
             content.innerHTML = orderManager.createOrderDetailHTML(order);
-            modal.classList.add('active');
+            // show modal (flex centers it)
+            modal.style.display = 'flex';
 
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
+            const closeBtn = modal.querySelector('.close-order-detail');
+            const hide = () => { modal.style.display = 'none'; };
+            if (closeBtn) closeBtn.onclick = hide;
+
+            // click backdrop to close
+            const backdropHandler = (e) => { if (e.target === modal) hide(); };
+            modal.addEventListener('click', backdropHandler);
+
+            // remove handler when closed (safe cleanup)
+            const observer = new MutationObserver(() => {
+                if (modal.style.display === 'none') {
+                    modal.removeEventListener('click', backdropHandler);
+                    if (closeBtn) closeBtn.onclick = null;
+                    observer.disconnect();
                 }
             });
+            observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
         }
 
         function showUpdateStatusModal() {
             const modal = document.getElementById('updateStatusModal');
-            modal.classList.add('active');
+            modal.style.display = 'flex';
 
             const btnConfirm = document.getElementById('btn-confirm-update');
             const btnCancel = document.getElementById('btn-cancel-update');
 
             const handleCancel = () => {
-                modal.classList.remove('active');
+                modal.style.display = 'none';
                 btnConfirm.removeEventListener('click', handleConfirm);
                 btnCancel.removeEventListener('click', handleCancel);
             };
@@ -2221,6 +2545,16 @@ productRender();
                     handleCancel();
                 }
             });
+
+            // show/hide reason textarea when cancelled selected
+            const cancelWrap = document.getElementById('cancel-reason-wrap');
+            document.getElementById('new-status-select').addEventListener('change', (e) => {
+                if (e.target.value === 'cancelled') cancelWrap.style.display = 'block'; else cancelWrap.style.display = 'none';
+            });
+
+            // close button inside modal (if any)
+            const closeBtn = modal.querySelector('.close-btn');
+            if (closeBtn) closeBtn.onclick = handleCancel;
         }
 
         function resetFilter() {

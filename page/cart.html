@@ -1479,9 +1479,6 @@
                     >
                     <select id="district" class="form-input" required>
                       <option value="">Chọn quận/huyện</option>
-                      <option value="q1">Quận 1</option>
-                      <option value="q2">Quận 2</option>
-                      <option value="q3">Quận 3</option>
                     </select>
                     <div class="error-message" id="district-error">
                       Vui lòng chọn quận/huyện
@@ -2140,6 +2137,69 @@
             });
           });
 
+          // City change - update districts
+          const citySelect = document.getElementById("city");
+          const districtSelect = document.getElementById("district");
+          const districtMap = {
+            hcm: [
+              { value: "q1", text: "Quận 1" },
+              { value: "q2", text: "Quận 2" },
+              { value: "q3", text: "Quận 3" },
+              { value: "q4", text: "Quận 4" },
+              { value: "q5", text: "Quận 5" },
+              { value: "q6", text: "Quận 6" },
+              { value: "q7", text: "Quận 7" },
+              { value: "q8", text: "Quận 8" },
+              { value: "q9", text: "Quận 9" },
+              { value: "q10", text: "Quận 10" },
+              { value: "q11", text: "Quận 11" },
+              { value: "q12", text: "Quận 12" },
+              { value: "tb", text: "Quận Tân Bình" },
+              { value: "tp", text: "Quận Tân Phú" },
+              { value: "gb", text: "Quận Gò Vấp" },
+              { value: "pn", text: "Quận Phú Nhuận" },
+              { value: "bt", text: "Quận Bình Thạnh" },
+              { value: "btan", text: "Quận Bình Tân" },
+              { value: "thuduc", text: "Thành phố Thủ Đức" }
+            ],
+            hn: [
+              { value: "hk", text: "Quận Hoàng Kiếm" },
+              { value: "bd", text: "Quận Ba Đình" },
+              { value: "cg", text: "Quận Cầu Giấy" },
+              { value: "th", text: "Quận Tây Hồ" },
+              { value: "dĐ", text: "Quận Đống Đa" }, 
+              { value: "lb", text: "Quận Long Biên" },
+              { value: "hđ", text: "Quận Hà Đông" },
+              { value: "tx", text: "Quận Thanh Xuân" },
+              { value: "tl", text: "Quận Từ Liêm" },
+              { value: "hbt", text: "Quận Hai Bà Trưng" },
+              { value: "dt", text: "Quận Đa Tốn" },
+              { value: "st", text: "Quận Sơn Tây" },
+            ],
+            dn: [
+              { value: "hc", text: "Quận Hải Châu" },
+              { value: "tk", text: "Quận Thanh Khê" },
+              { value: "stra", text: "Quận Sơn Trà" },
+              { value: "lienchieu", text: "Quận Liên Chiểu" },
+              { value: "nguhanhson", text: "Quận Ngũ Hành Sơn" },
+              { value: "camle", text: "Quận Cẩm Lệ" },
+            ]
+          };
+
+          citySelect.addEventListener("change", () => {
+            const city = citySelect.value;
+            districtSelect.innerHTML = '<option value="">Chọn quận/huyện</option>';
+            
+            if (city && districtMap[city]) {
+              districtMap[city].forEach(district => {
+                const option = document.createElement("option");
+                option.value = district.value;
+                option.textContent = district.text;
+                districtSelect.appendChild(option);
+              });
+            }
+          });
+
           // Complete order button
           document
             .getElementById("complete-order")
@@ -2227,7 +2287,10 @@
           document
             .getElementById("refresh-orders")
             .addEventListener("click", () => {
+              // Reload orders from localStorage to get latest updates from admin
+              this.orders = JSON.parse(localStorage.getItem("userOrders")) || [];
               this.renderOrders();
+              alert('✅ Đã cập nhật lịch sử đơn hàng từ máy chủ');
             });
 
           // Order details toggle
@@ -2751,6 +2814,7 @@
         }
 
         processOrder() {
+          const now = new Date();
           const orderData = {
             fullname: document.getElementById("fullname").value,
             phone: document.getElementById("phone").value,
@@ -2766,14 +2830,15 @@
             note: document.getElementById("note").value,
             paymentMethod: document.querySelector(".payment-method.selected")
               .dataset.method,
-            orderDate: new Date().toLocaleDateString("vi-VN"),
+            orderDateISO: now.toISOString(),
+            orderDateDisplay: now.toLocaleDateString("vi-VN"),
             orderId: "#WS" + Math.floor(100000 + Math.random() * 900000),
           };
 
           // Update confirmation page
           document.getElementById("order-id").textContent = orderData.orderId;
           document.getElementById("order-date").textContent =
-            orderData.orderDate;
+            orderData.orderDateDisplay;
           document.getElementById("payment-method").textContent =
             this.getPaymentMethodName(orderData.paymentMethod);
           document.getElementById("customer-name").textContent =
@@ -2795,7 +2860,7 @@
           // Tạo đơn hàng mới cho lịch sử
           const newOrder = {
             id: orderData.orderId,
-            orderDate: orderData.orderDate,
+            orderDate: orderData.orderDateISO,
             status: "pending",
             items: [...this.cart],
             subtotal: this.cart.reduce(
@@ -2826,7 +2891,7 @@
           this.saveOrders();
 
           // 🔥 QUAN TRỌNG: Lưu thông tin đơn hàng để hiển thị trên trang chủ
-          this.saveOrderData(orderData);
+          this.saveOrderData({ ...orderData });
 
           // 🔥 RESET GIỎ HÀNG VỀ 0 NGAY SAU KHI ĐẶT HÀNG THÀNH CÔNG
           this.resetCartImmediately();
