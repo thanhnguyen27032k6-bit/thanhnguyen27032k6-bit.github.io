@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
   );
   const noResultsMessage = document.getElementById("no-results");
 
-  function renderProductCard(product) {
+  function calculateProductPrice(product) {
     // Xử lý giá với hệ thống discount mới
     let currentPrice = 0;
     let oldPrice = 0;
@@ -126,17 +126,21 @@ document.addEventListener("DOMContentLoaded", function () {
       currentPrice = product.price || 0;
       oldPrice = product.oldPrice || 0;
     }
-    
-    return `
-      <div class="product-card" data-id="${product.id}">
-        <img src="${product.image}" alt="${product.name}">
-        <div class="product-name">${product.name}</div>
-        <div class="product-price">${formatPrice(currentPrice)}</div>
-        <div class="product-oldprice">${formatPrice(oldPrice)}</div>
-        <button class="compare-btn" type="button">So sánh</button>
-      </div>
-    `;
+    return { currentPrice, oldPrice };
   }
+    function renderProductCard(product) 
+    {
+      const { currentPrice, oldPrice } = calculateProductPrice(product);
+      return `
+        <div class="product-card" data-id="${product.id}">
+          <img src="${product.image}" alt="${product.name}">
+          <div class="product-name">${product.name}</div>
+          <div class="product-price">${formatPrice(currentPrice)}</div>
+          <div class="product-oldprice">${formatPrice(oldPrice)}</div>
+          <button class="compare-btn" type="button">So sánh</button>
+        </div>
+      `;
+    }
   
   
   function formatPrice(price) {
@@ -359,17 +363,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 if (hotContainer && hotProducts.length > 0) {
   hotContainer.innerHTML = hotProducts
-    .map(
-      (p) => `
-      <div class="product-card" data-id="${p.id}">
-        <img src="${p.image}" alt="${p.alt || p.name}">
-        <div class="product-name">${p.name}</div>
-        <div class="product-price">${formatPrice(p.price)}</div>
-        <div class="product-oldprice">${formatPrice(p.oldPrice)}</div>
-        <button class="compare-btn" type="button">So sánh</button>
-      </div>
-    `
-    )
+    .map((p) => renderProductCard(p))
     .join("");
 
   // Gắn lại sự kiện mở modal chi tiết cho sản phẩm Hot Sale
@@ -395,7 +389,9 @@ function performSearch() {
     return;
   }
 
-  const filteredProducts = window.PRODUCTS.filter(
+  // lấy danh sách sản phẩm từ localstorage (nếu có) hoặc từ window.PRODUCTS
+  const productList=JSON.parse(localStorage.getItem("products")) || window.PRODUCTS||[];
+  const filteredProducts = productList.filter(
     (product) =>
       product.name.toLowerCase().includes(query) ||
       (product.alt && product.alt.toLowerCase().includes(query))
